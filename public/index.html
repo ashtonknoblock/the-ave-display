@@ -105,5 +105,9 @@
   <footer id="status" class="status"></footer>
 
   <script src="app.js"></script>
+  <script>
+    // Safety net: if app.js didn't load (e.g. the server was restarting), retry
+    setTimeout(function () { if (!window.__aveStarted) location.reload(); }, 15000);
+  </script>
 </body>
 </html>

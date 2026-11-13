@@ -1,3 +1,4 @@
+window.__aveStarted = true;
 // ===== Settings =====
 const CONFIG = {
   location: { name: "Columbus", lat: 39.96, lon: -83.0 },
