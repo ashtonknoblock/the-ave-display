@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>The Ave</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="layout">
+    <section class="time-panel">
+      <div id="clock" class="clock">--:--</div>
+      <div id="date" class="date">&nbsp;</div>
+    </section>
+
+    <section class="weather-panel">
+      <div class="now">
+        <div id="now-icon" class="now-icon">·</div>
+        <div>
+          <div id="now-temp" class="now-temp">--°</div>
+          <div id="now-desc" class="now-desc">Loading weather…</div>
+          <div id="now-extra" class="now-extra"></div>
+        </div>
+      </div>
+      <div id="forecast" class="forecast"></div>
+    </section>
+  </main>
+
+  <footer id="status" class="status"></footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+/* Dark theme: easier on the eyes for an always-on screen */
+:root {
+  --bg: #0d1117;
+  --panel: #161b22;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #58a6ff;
+  --warm: #ffa657;
+  --cool: #79c0ff;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.layout {
+  height: 100vh;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 3vw;
+  padding: 5vh 4vw 7vh;
+  align-items: center;
+}
+
+/* Portrait fallback */
+@media (orientation: portrait) {
+  .layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+}
+
+.clock {
+  font-size: 19vw;
+  font-weight: 200;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.clock .ampm { font-size: 0.25em; color: var(--muted); margin-left: 0.15em; letter-spacing: 0; }
+@media (orientation: portrait) { .clock { font-size: 28vw; } }
+
+.date {
+  font-size: 3.2vw;
+  color: var(--muted);
+  margin-top: 1.5vh;
+}
+
+.weather-panel {
+  background: var(--panel);
+  border-radius: 24px;
+  padding: 3.5vh 2.5vw;
+}
+
+.now { display: flex; align-items: center; gap: 2vw; margin-bottom: 3vh; }
+.now-icon { font-size: 9vw; line-height: 1; }
+.now-temp { font-size: 7vw; font-weight: 300; line-height: 1; }
+.now-desc { font-size: 2.2vw; margin-top: 0.6vh; }
+.now-extra { font-size: 1.6vw; color: var(--muted); margin-top: 0.6vh; }
+
+.forecast {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.8vw;
+  text-align: center;
+}
+.day { padding: 1.2vh 0; border-radius: 14px; }
+.day.today { background: rgba(88, 166, 255, 0.12); }
+.day-name { font-size: 1.6vw; color: var(--muted); }
+.day-icon { font-size: 3.4vw; margin: 0.8vh 0; }
+.day-hi { font-size: 1.9vw; color: var(--warm); }
+.day-lo { font-size: 1.6vw; color: var(--cool); }
+.day-rain { font-size: 1.3vw; color: var(--accent); margin-top: 0.4vh; min-height: 1.3vw; }
+
+.status {
+  position: fixed;
+  bottom: 1.5vh;
+  right: 2vw;
+  font-size: 1.2vw;
+  color: var(--muted);
+  opacity: 0.6;
+}
