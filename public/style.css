@@ -26,9 +26,9 @@ html, body {
 
 /* ---------- Layout ---------- */
 /* ---------- Pages (swipe between) + dock ---------- */
-.pages { position: fixed; inset: 0 0 var(--dock) 0; overflow: hidden; }
+.pages { position: fixed; top: 0; left: 0; right: 0; bottom: var(--dock); overflow: hidden; }
 .page {
-  position: absolute; inset: 0;
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
   opacity: 0; visibility: hidden;
   transform: translateX(var(--from, 6vw));
   transition: opacity 0.35s ease, transform 0.35s ease, visibility 0.35s;
@@ -253,7 +253,7 @@ html, body {
 .page[data-page="timers"].active ~ .timer-pills, body.on-timers .timer-pills { display: none; }
 
 /* Alarm */
-.alarm { position: fixed; inset: 0; z-index: 50; background: rgba(13, 17, 23, 0.9); display: flex; align-items: center; justify-content: center; }
+.alarm { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 50; background: rgba(13, 17, 23, 0.9); display: flex; align-items: center; justify-content: center; }
 .alarm[hidden] { display: none; }
 .alarm-box { text-align: center; animation: pulse 1.2s ease-in-out infinite; }
 .alarm-icon { font-size: 9vw; }
