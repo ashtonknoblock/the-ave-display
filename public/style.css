@@ -43,9 +43,20 @@ html, body {
 .lights-panel { grid-area: lights; min-width: 0; }
 .portrait-only { display: none !important; }
 
-/* ---------- Clock ---------- */
+/* list panels: title on top, scrollable list fills the rest */
+.coming-panel, .rotator > .slide:not([data-slide="weather"]) { display: flex; flex-direction: column; }
+
+/* ---------- Clock + mini weather ---------- */
+.time-row { display: flex; align-items: center; justify-content: space-between; gap: 0.8vw; }
+.mini-wx { flex: 0 0 auto; }
+.time-row .clock { flex: 0 1 auto; min-width: 0; }
+.mini-wx { text-align: right; white-space: nowrap; }
+.mini-wx .mw-top { display: flex; align-items: center; justify-content: flex-end; gap: 0.5vw; }
+.mini-wx .mw-icon { font-size: 2.6vw; line-height: 1; }
+.mini-wx .mw-temp { font-size: 3.4vw; font-weight: 300; line-height: 1; }
+.mini-wx .mw-desc { font-size: 1.05vw; color: var(--muted); margin-top: 0.5vh; }
 .clock {
-  font-size: 11.5vw;
+  font-size: 9.2vw;
   font-weight: 200;
   line-height: 0.95;
   letter-spacing: -0.03em;
@@ -95,7 +106,17 @@ html, body {
 /* ---------- Lists (coming up, Columbus) ---------- */
 .slide-title { font-size: 1.9vw; font-weight: 500; margin-bottom: 1.8vh; display: flex; justify-content: space-between; align-items: baseline; gap: 1vw; }
 .slide-title small { font-size: 1.15vw; color: var(--muted); font-weight: 400; white-space: nowrap; }
-.list { display: flex; flex-direction: column; gap: 1.3vh; }
+.list {
+  display: flex; flex-direction: column; gap: 1.3vh;
+  flex: 1 1 auto; min-height: 0;
+  overflow-y: auto; overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  padding-bottom: 5vh;
+  -webkit-mask-image: linear-gradient(to bottom, #000 82%, transparent);
+  mask-image: linear-gradient(to bottom, #000 82%, transparent);
+}
+.list::-webkit-scrollbar { display: none; }
+.slide-title { flex: 0 0 auto; }
 .item { display: grid; grid-template-columns: 6.6vw minmax(0, 1fr); gap: 1.1vw; align-items: center; }
 .chip {
   text-align: center;
@@ -114,8 +135,9 @@ html, body {
 .empty { color: var(--muted); font-size: 1.4vw; line-height: 1.4; }
 
 /* ---------- This weekend ---------- */
-.weekend { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); gap: 1vw; }
-.wk-day { background: var(--panel-2); border-radius: 16px; padding: 1.5vh 0.9vw; min-height: 44vh; overflow: hidden; }
+.weekend { display: grid; grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)); gap: 1vw; flex: 1 1 auto; min-height: 0; }
+.wk-day { background: var(--panel-2); border-radius: 16px; padding: 1.5vh 0.9vw; min-height: 0; overflow-y: auto; scrollbar-width: none; overscroll-behavior: contain; }
+.wk-day::-webkit-scrollbar { display: none; }
 .wk-day.is-today { box-shadow: inset 0 0 0 2px rgba(255, 196, 92, 0.45); }
 .wk-head { font-size: 1.5vw; font-weight: 500; margin-bottom: 1.2vh; display: flex; justify-content: space-between; align-items: baseline; }
 .wk-head small { font-size: 1.05vw; color: var(--muted); font-weight: 400; }
@@ -170,7 +192,8 @@ body.night { filter: brightness(0.35); }
     padding: 3vh 6vw 5vh;
   }
   .coming-panel { display: none; }
-  .portrait-only { display: block !important; }
+  .portrait-only { display: flex !important; }
+  .mini-wx { display: none; }
   .clock { font-size: 18vw; }
   .date { font-size: 5vw; }
   .weather-panel { padding: 3vh 5vw; }

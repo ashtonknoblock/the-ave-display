@@ -91,6 +91,8 @@ async function updateWeather() {
 
 function renderNow(c) {
   const { label, icon } = wmo(c.weather_code, c.is_day === 1);
+  document.getElementById("mini-wx").innerHTML =
+    `<div class="mw-top"><span class="mw-icon">${icon}</span><span class="mw-temp">${Math.round(c.temperature_2m)}°</span></div><div class="mw-desc">${label}</div>`;
   document.getElementById("now-icon").textContent = icon;
   document.getElementById("now-temp").textContent = `${Math.round(c.temperature_2m)}°`;
   document.getElementById("now-desc").textContent = `${label} · ${CONFIG.location.name}`;
@@ -268,19 +270,12 @@ function renderDates(data) {
   const html = datesHtml(data);
   document.getElementById("slide-dates").innerHTML = html;
   document.getElementById("coming").innerHTML = html;
-  fitList(document.getElementById("coming"));
-  fitList(document.getElementById("slide-dates"));
-}
-
-// Show as many list rows as fit in a panel, then stop (no cut-off rows).
-function fitList(panel) {
-  const list = panel && panel.querySelector(".list");
-  if (!list || getComputedStyle(panel).display === "none") return;
-  while (panel.scrollHeight > panel.clientHeight + 1 && list.children.length > 1) list.lastElementChild.remove();
+  watchScroll(document.getElementById("coming"));
+  watchScroll(document.getElementById("slide-dates"));
 }
 function datesHtml(data) {
   if (!data.configured) return "";
-  const items = data.items.slice(0, 10);
+  const items = data.items.slice(0, 20);
   return `<div class="slide-title">Coming up <small>The Ave calendar</small></div>` + (items.length
     ? `<div class="list">${items.map((ev) => {
         const n = dayDiff(ev.start);
@@ -333,7 +328,7 @@ function renderWeekend(data) {
     const evs = [
       ...mine.filter((e) => onDay(e, day)).map((e) => ({ ...e, mine: true })),
       ...local.filter((e) => onDay(e, day)),
-    ].slice(0, 6);
+    ].slice(0, 10);
     const wx = dayWeather(day);
     return `<div class="wk-day ${sameDay(day, today) ? "is-today" : ""}">
       <div class="wk-head">${sameDay(day, today) ? "Today" : day.toLocaleDateString("en-US", { weekday: "long" })}<small>${fmt(day)}</small></div>
@@ -343,11 +338,12 @@ function renderWeekend(data) {
   });
   el.innerHTML = `<div class="slide-title">This weekend <small>${fmt(days[0])} – ${fmt(days[days.length - 1])}</small></div>
     <div class="weekend" style="--cols: ${days.length}">${cols.join("")}</div>`;
+  watchScroll(el);
 }
 
 function renderLocal(data) {
   const el = document.getElementById("slide-local");
-  const items = data.items.slice(0, 14);
+  const items = data.items.slice(0, 30);
   if (!items.length) { el.innerHTML = ""; return; }
   el.innerHTML = `<div class="slide-title">Around Columbus <small>next 10 days</small></div>
     <div class="list">${items.map((ev) => {
@@ -357,7 +353,7 @@ function renderLocal(data) {
       return `<div class="item"><div class="chip ${n <= 1 ? "soon" : ""}">${top}<b>${d.getMonth() + 1}/${d.getDate()}</b></div>
         <div><div class="item-title">${esc(ev.title)}</div><div class="item-sub">${ev.allDay ? "" : esc(d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).replace(":00", "")) + " · "}${esc(ev.location || ev.source)}</div></div></div>`;
     }).join("")}</div>`;
-  fitList(el);
+  watchScroll(el);
 }
 
 let lastEvents = null;
@@ -386,12 +382,32 @@ function showSlide(i) {
   slideIndex = (i + list.length) % list.length;
   document.querySelectorAll("#rotator > .slide").forEach((s) => s.classList.toggle("active", s === list[slideIndex]));
   document.getElementById("dots").innerHTML = list.length > 1 ? list.map((_, j) => `<span class="${j === slideIndex ? "on" : ""}"></span>`).join("") : "";
+  // start each slide scrolled to the top
+  list[slideIndex].querySelectorAll(".list, .wk-day").forEach((el) => (el.scrollTop = 0));
   clearTimeout(slideTimer);
-  slideTimer = setTimeout(() => showSlide(slideIndex + 1), (Number(list[slideIndex].dataset.seconds) || 15) * 1000);
+  slideTimer = setTimeout(nextSlideWhenIdle, (Number(list[slideIndex].dataset.seconds) || 15) * 1000);
 }
-window.addEventListener("resize", () => { if (lastEvents) { renderDates(lastEvents.personal); renderLocal(lastEvents.local); } });
-// tap the panel to jump to the next slide
-document.getElementById("rotator").addEventListener("click", () => showSlide(slideIndex + 1));
+function nextSlideWhenIdle() {
+  const wait = pausedUntil - Date.now();
+  if (wait > 0) { slideTimer = setTimeout(nextSlideWhenIdle, wait); return; }
+  showSlide(slideIndex + 1);
+}
+// Touching or scrolling a list pauses the rotation for 30 seconds.
+let pausedUntil = 0;
+function pauseRotation() { pausedUntil = Date.now() + 30000; }
+function watchScroll(panel) {
+  if (!panel) return;
+  panel.querySelectorAll(".list, .wk-day").forEach((el) => {
+    el.addEventListener("scroll", pauseRotation, { passive: true });
+    el.addEventListener("touchstart", pauseRotation, { passive: true });
+  });
+}
+// Tap the panel (but not inside a list) to jump to the next slide
+document.getElementById("rotator").addEventListener("click", (e) => {
+  if (e.target.closest(".list, .wk-day")) return;
+  pausedUntil = 0;
+  showSlide(slideIndex + 1);
+});
 
 // ===== Start =====
 updateClock();
