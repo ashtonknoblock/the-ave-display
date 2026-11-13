@@ -197,6 +197,7 @@ function pct(bri) {
 function renderRooms(rooms) {
   const changed = JSON.stringify(rooms.map((r) => r.id + r.name)) !== JSON.stringify(roomList.map((r) => r.id + r.name));
   roomList = rooms;
+  if (typeof markLive === "function") markLive();
   if (changed) renderRoomScenes();
   if (!rooms.length) {
     lightsEl.innerHTML = `<div class="hue-connect">Connected to Hue, but no rooms are set up in the Hue app yet.</div>`;
@@ -448,9 +449,25 @@ function renderRoomScenes() {
     `<button class="chip-btn holiday" data-scene="holiday:${x.id}:${pickedRoom}">${x.icon} ${esc(x.name)}</button>`).join("") + hueSceneList.filter((x) => (seen.has(x.name) ? false : seen.add(x.name))).map((x) =>
     `<button class="chip-btn" data-scene="hue:${x.id}:${pickedRoom}">${esc(x.name)}</button>`).join("");
   hs.querySelectorAll("[data-scene]").forEach((b) => (b.onclick = () => runScene(b.dataset.scene, b)));
+  markLive();
+}
+
+// Keep the button for the running scene lit
+function sceneIsLive(key, rs) {
+  if (/^(holiday|hue):/.test(key)) { const r = rs.find((x) => x.id === key.split(":").pop()); return Boolean(r && r.on && r.scene === key); }
+  if (key === "all-off") return rs.length > 0 && !rs.some((r) => r.on);
+  return rs.some((r) => r.on && r.scene === key);
+}
+function guessScene(key, rs) { // show it right away; the next poll confirms
+  if (/^(holiday|hue):/.test(key)) { const r = rs.find((x) => x.id === key.split(":").pop()); if (r) { r.on = true; r.scene = key; } }
+  else rs.forEach((r) => { if (key === "all-off") { r.on = false; r.scene = null; } else if (key === "all-on" || r.type === "Room") r.scene = key; });
+}
+function markLive() {
+  document.querySelectorAll("#scenes [data-scene], #hue-scenes [data-scene]").forEach((b) => b.classList.toggle("live", sceneIsLive(b.dataset.scene, roomList)));
 }
 async function runScene(id, btn) {
   flash(btn);
+  guessScene(id, roomList); markLive();
   lightsBusyUntil = 0;
   try { await api(`/api/hue/scenes/${encodeURIComponent(id)}`, { method: "POST" }); } catch (err) { console.error(err); }
   setTimeout(updateLights, 600);
@@ -464,6 +481,7 @@ async function updateScenes() {
     holidayList = holiday || [];
     sc.querySelectorAll("[data-scene]").forEach((b) => (b.onclick = () => runScene(b.dataset.scene, b)));
     renderRoomScenes();
+    markLive();
   } catch {
     document.getElementById("scenes").innerHTML = "";
   }

@@ -224,6 +224,7 @@ html, body {
 }
 .chip-btn small { color: var(--muted); margin-left: 0.4vw; }
 .chip-btn.flash { background: rgba(255, 196, 92, 0.35); }
+.scene.live, .chip-btn.live { background: rgba(255, 196, 92, 0.28); border-color: #ffc45c; box-shadow: inset 0 0 0 1px #ffc45c; }
 .chip-btn.holiday { background: linear-gradient(135deg, rgba(255, 90, 90, 0.25), rgba(60, 200, 120, 0.2)); }
 
 /* Timers page */
