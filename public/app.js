@@ -117,12 +117,17 @@ function renderForecast(d) {
 }
 
 let buildTag = "";
+let lastStatus = "";
 function setStatus(text) {
+  lastStatus = text;
   document.getElementById("status").textContent = buildTag ? `${text} · ${buildTag}` : text;
 }
 fetch("/__info", { cache: "no-store" })
   .then((r) => r.json())
-  .then(({ commit }) => { buildTag = commit; })
+  .then(({ commit }) => {
+    buildTag = commit;
+    setStatus(lastStatus);
+  })
   .catch(() => {});
 
 // ===== Live reload (only while building) =====
