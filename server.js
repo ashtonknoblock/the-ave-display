@@ -71,8 +71,9 @@ const server = http.createServer((req, res) => {
   if (url.pathname.startsWith("/api/hue/")) return handleHue(req, res, url);
 
   if (url.pathname === "/api/events") {
-    Promise.all([events.personal(), events.local()])
-      .then(([personal, local]) => sendJson(res, 200, { personal, local }))
+    events.personal()
+      .then(async (personal) => ({ personal, local: await events.local(personal.offDays) }))
+      .then(({ personal, local }) => sendJson(res, 200, { personal, local }))
       .catch((err) => sendJson(res, 500, { error: err.message }));
     return;
   }
