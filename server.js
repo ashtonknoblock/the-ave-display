@@ -11,6 +11,7 @@ const hue = require("./lib/hue");
 const events = require("./lib/events");
 
 const PORT = process.env.PORT || 3000;
+const STARTED_AT = Date.now(); // changes on every restart, so open pages reload after server updates
 const PUBLIC_DIR = path.join(__dirname, "public");
 
 const MIME = {
@@ -87,7 +88,7 @@ const server = http.createServer((req, res) => {
 
   if (url.pathname === "/__version") {
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
-    return res.end(JSON.stringify({ version: latestChange(PUBLIC_DIR) }));
+    return res.end(JSON.stringify({ version: `${latestChange(PUBLIC_DIR)}-${STARTED_AT}` }));
   }
 
   let filePath = path.join(PUBLIC_DIR, url.pathname === "/" ? "index.html" : url.pathname);
