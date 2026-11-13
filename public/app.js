@@ -268,10 +268,19 @@ function renderDates(data) {
   const html = datesHtml(data);
   document.getElementById("slide-dates").innerHTML = html;
   document.getElementById("coming").innerHTML = html;
+  fitList(document.getElementById("coming"));
+  fitList(document.getElementById("slide-dates"));
+}
+
+// Show as many list rows as fit in a panel, then stop (no cut-off rows).
+function fitList(panel) {
+  const list = panel && panel.querySelector(".list");
+  if (!list || getComputedStyle(panel).display === "none") return;
+  while (panel.scrollHeight > panel.clientHeight + 1 && list.children.length > 1) list.lastElementChild.remove();
 }
 function datesHtml(data) {
   if (!data.configured) return "";
-  const items = data.items.slice(0, 5);
+  const items = data.items.slice(0, 10);
   return `<div class="slide-title">Coming up <small>The Ave calendar</small></div>` + (items.length
     ? `<div class="list">${items.map((ev) => {
         const n = dayDiff(ev.start);
@@ -324,7 +333,7 @@ function renderWeekend(data) {
     const evs = [
       ...mine.filter((e) => onDay(e, day)).map((e) => ({ ...e, mine: true })),
       ...local.filter((e) => onDay(e, day)),
-    ].slice(0, 4);
+    ].slice(0, 6);
     const wx = dayWeather(day);
     return `<div class="wk-day ${sameDay(day, today) ? "is-today" : ""}">
       <div class="wk-head">${sameDay(day, today) ? "Today" : day.toLocaleDateString("en-US", { weekday: "long" })}<small>${fmt(day)}</small></div>
@@ -338,7 +347,7 @@ function renderWeekend(data) {
 
 function renderLocal(data) {
   const el = document.getElementById("slide-local");
-  const items = data.items.slice(0, 5);
+  const items = data.items.slice(0, 14);
   if (!items.length) { el.innerHTML = ""; return; }
   el.innerHTML = `<div class="slide-title">Around Columbus <small>next 10 days</small></div>
     <div class="list">${items.map((ev) => {
@@ -348,6 +357,7 @@ function renderLocal(data) {
       return `<div class="item"><div class="chip ${n <= 1 ? "soon" : ""}">${top}<b>${d.getMonth() + 1}/${d.getDate()}</b></div>
         <div><div class="item-title">${esc(ev.title)}</div><div class="item-sub">${ev.allDay ? "" : esc(d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).replace(":00", "")) + " · "}${esc(ev.location || ev.source)}</div></div></div>`;
     }).join("")}</div>`;
+  fitList(el);
 }
 
 let lastEvents = null;
@@ -379,6 +389,7 @@ function showSlide(i) {
   clearTimeout(slideTimer);
   slideTimer = setTimeout(() => showSlide(slideIndex + 1), (Number(list[slideIndex].dataset.seconds) || 15) * 1000);
 }
+window.addEventListener("resize", () => { if (lastEvents) { renderDates(lastEvents.personal); renderLocal(lastEvents.local); } });
 // tap the panel to jump to the next slide
 document.getElementById("rotator").addEventListener("click", () => showSlide(slideIndex + 1));
 
