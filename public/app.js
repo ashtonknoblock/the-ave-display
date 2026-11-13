@@ -72,7 +72,7 @@ async function updateWeather() {
     "&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day" +
     "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max" +
     "&temperature_unit=fahrenheit&wind_speed_unit=mph" +
-    `&timezone=${encodeURIComponent(CONFIG.timezone)}&forecast_days=5`;
+    `&timezone=${encodeURIComponent(CONFIG.timezone)}&forecast_days=7`;
 
   try {
     const res = await fetch(url);
@@ -80,6 +80,8 @@ async function updateWeather() {
     const data = await res.json();
     renderNow(data.current);
     renderForecast(data.daily);
+    lastDaily = data.daily;
+    if (lastEvents) renderWeekend(lastEvents);
     setStatus(`Updated ${new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`);
   } catch (err) {
     console.error("Weather failed:", err);
@@ -96,9 +98,11 @@ function renderNow(c) {
     `Feels ${Math.round(c.apparent_temperature)}° · Wind ${Math.round(c.wind_speed_10m)} mph`;
 }
 
+let lastDaily = null;
 function renderForecast(d) {
   const el = document.getElementById("forecast");
   el.innerHTML = d.time
+    .slice(0, 5)
     .map((dateStr, i) => {
       const date = new Date(dateStr + "T12:00:00");
       const name = i === 0 ? "Today" : date.toLocaleDateString("en-US", { weekday: "short" });
@@ -261,17 +265,75 @@ function whenLabel(ev) {
 }
 
 function renderDates(data) {
-  const el = document.getElementById("slide-dates");
-  if (!data.configured) { el.innerHTML = ""; return; }
+  const html = datesHtml(data);
+  document.getElementById("slide-dates").innerHTML = html;
+  document.getElementById("coming").innerHTML = html;
+}
+function datesHtml(data) {
+  if (!data.configured) return "";
   const items = data.items.slice(0, 5);
-  el.innerHTML = `<div class="slide-title">Coming up <small>The Ave calendar</small></div>` + (items.length
+  return `<div class="slide-title">Coming up <small>The Ave calendar</small></div>` + (items.length
     ? `<div class="list">${items.map((ev) => {
         const n = dayDiff(ev.start);
         const chip = n <= 0 ? "<b>Today</b>" : n === 1 ? "<b>Tmrw</b>" : `in <b>${n}</b> days`;
-        return `<div class="item"><div class="chip ${n <= 3 ? "soon" : ""}">${chip}</div>
+        return `<div class="item"><div class="chip ${n <= 0 ? "today" : n <= 3 ? "soon" : ""}">${chip}</div>
           <div><div class="item-title">${esc(ev.title)}</div><div class="item-sub">${esc(whenLabel(ev))}${ev.location ? " · " + esc(ev.location) : ""}</div></div></div>`;
       }).join("")}</div>`
     : `<div class="empty">Nothing on the calendar for the next two months.</div>`);
+}
+
+// ----- This weekend: Fri / Sat / Sun side by side -----
+function sameDay(a, b) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+function onDay(ev, day) {
+  const s = new Date(ev.start);
+  if (sameDay(s, day)) return true;
+  if (!ev.allDay || !ev.end) return false;           // multi-day all-day events (trips, days off)
+  const e = new Date(ev.end);
+  const d0 = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+  return s <= d0 && d0 < e;
+}
+function weekendDays() {
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  const dow = t.getDay();
+  const fri = new Date(t);
+  if (dow === 6) fri.setDate(t.getDate() - 1);
+  else if (dow === 0) fri.setDate(t.getDate() - 2);
+  else fri.setDate(t.getDate() + ((5 - dow + 7) % 7));
+  return [0, 1, 2].map((i) => new Date(fri.getFullYear(), fri.getMonth(), fri.getDate() + i)).filter((d) => d >= t);
+}
+function shortTime(ev) {
+  if (ev.allDay) return "All day";
+  return new Date(ev.start).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).replace(":00", "");
+}
+function dayWeather(day) {
+  if (!lastDaily) return "";
+  const i = lastDaily.time.findIndex((t) => sameDay(new Date(t + "T12:00:00"), day));
+  if (i < 0) return "";
+  return `${wmo(lastDaily.weather_code[i]).icon} ${Math.round(lastDaily.temperature_2m_max[i])}° / ${Math.round(lastDaily.temperature_2m_min[i])}°`;
+}
+function renderWeekend(data) {
+  const el = document.getElementById("slide-weekend");
+  const days = weekendDays();
+  const mine = data.personal.items || [];
+  const local = data.local.items || [];
+  const fmt = (d) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const today = new Date();
+  const cols = days.map((day) => {
+    const evs = [
+      ...mine.filter((e) => onDay(e, day)).map((e) => ({ ...e, mine: true })),
+      ...local.filter((e) => onDay(e, day)),
+    ].slice(0, 4);
+    const wx = dayWeather(day);
+    return `<div class="wk-day ${sameDay(day, today) ? "is-today" : ""}">
+      <div class="wk-head">${sameDay(day, today) ? "Today" : day.toLocaleDateString("en-US", { weekday: "long" })}<small>${fmt(day)}</small></div>
+      ${wx ? `<div class="wk-wx">${wx}</div>` : ""}
+      ${evs.length ? evs.map((e) => `<div class="wk-ev ${e.mine ? "mine" : ""}"><div class="wk-time">${esc(shortTime(e))}${!e.mine && e.location ? " · " + esc(e.location) : ""}</div><div class="wk-title">${esc(e.title)}</div></div>`).join("") : `<div class="wk-none">Nothing planned yet</div>`}
+    </div>`;
+  });
+  el.innerHTML = `<div class="slide-title">This weekend <small>${fmt(days[0])} – ${fmt(days[days.length - 1])}</small></div>
+    <div class="weekend" style="--cols: ${days.length}">${cols.join("")}</div>`;
 }
 
 function renderLocal(data) {
@@ -288,11 +350,14 @@ function renderLocal(data) {
     }).join("")}</div>`;
 }
 
+let lastEvents = null;
 async function updateEvents() {
   try {
     const data = await api("/api/events");
+    lastEvents = data;
     renderDates(data.personal);
     renderLocal(data.local);
+    renderWeekend(data);
   } catch (err) {
     console.error("Events failed:", err);
   }
@@ -302,7 +367,9 @@ async function updateEvents() {
 let slideIndex = 0;
 let slideTimer = null;
 function slides() {
-  return [...document.querySelectorAll("#rotator > .slide")].filter((s) => s.dataset.slide === "weather" || s.innerHTML.trim());
+  return [...document.querySelectorAll("#rotator > .slide")].filter(
+    (s) => getComputedStyle(s).display !== "none" && (s.dataset.slide === "weather" || s.innerHTML.trim())
+  );
 }
 function showSlide(i) {
   const list = slides();
