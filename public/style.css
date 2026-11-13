@@ -25,14 +25,23 @@ html, body {
   height: 100vh;
   display: grid;
   grid-template-columns: 1.1fr 1fr;
-  gap: 3vw;
+  grid-template-areas:
+    "time weather"
+    "lights weather";
+  grid-template-rows: auto auto;
+  align-content: center;
+  column-gap: 3vw;
+  row-gap: 4vh;
   padding: 5vh 4vw 7vh;
   align-items: center;
 }
+.time-panel { grid-area: time; }
+.weather-panel { grid-area: weather; }
+.lights-panel { grid-area: lights; align-self: start; }
 
 
 .clock {
-  font-size: 19vw;
+  font-size: 13vw;
   font-weight: 200;
   line-height: 1;
   letter-spacing: -0.03em;
@@ -70,7 +79,7 @@ html, body {
 .day-icon { font-size: 3.4vw; margin: 0.8vh 0; }
 .day-hi { font-size: 1.9vw; color: var(--warm); }
 .day-lo { font-size: 1.6vw; color: var(--cool); }
-.day-rain { font-size: 1.3vw; color: var(--accent); margin-top: 0.4vh; min-height: 1.3vw; }
+.day-rain { white-space: nowrap; font-size: 1.3vw; color: var(--accent); margin-top: 0.4vh; min-height: 1.3vw; }
 
 .status {
   position: fixed;
@@ -85,21 +94,22 @@ html, body {
 @media (orientation: portrait) {
   .layout {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto;
+    grid-template-areas: "time" "weather" "lights";
+    grid-template-rows: auto auto auto;
     align-content: center;
-    gap: 5vh;
-    padding: 6vh 6vw 8vh;
+    row-gap: 2.5vh;
+    padding: 3vh 6vw 5vh;
   }
-  .clock { font-size: 30vw; }
+  .clock { font-size: 18vw; }
   .date { font-size: 5.5vw; }
   .weather-panel { padding: 3.5vh 5vw; }
-  .now { gap: 4vw; }
-  .now-icon { font-size: 18vw; }
-  .now-temp { font-size: 14vw; }
+  .now { gap: 4vw; margin-bottom: 2vh; }
+  .now-icon { font-size: 12vw; }
+  .now-temp { font-size: 10vw; }
   .now-desc { font-size: 4.4vw; }
   .now-extra { font-size: 3.4vw; }
   .forecast { gap: 1.5vw; }
-  .day { padding: 1.5vh 0; }
+  .day { padding: 1vh 0; }
   .day-name { font-size: 3.4vw; }
   .day-icon { font-size: 7vw; }
   .day-hi { font-size: 4.2vw; }
@@ -111,3 +121,64 @@ html, body {
 /* ===== Night mode: dims everything so it's not a flashlight at 2am ===== */
 body { transition: filter 2s ease; }
 body.night { filter: brightness(0.35); }
+
+/* ===== Lights (Hue) ===== */
+.lights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(13vw, 1fr));
+  gap: 1vw;
+}
+.tile {
+  background: var(--panel);
+  border-radius: 18px;
+  padding: 1.6vh 1.2vw 1.2vh;
+  border: 2px solid transparent;
+  transition: background 0.3s, border-color 0.3s;
+  touch-action: manipulation;
+}
+.tile.on {
+  background: linear-gradient(160deg, rgba(255, 196, 92, 0.28), rgba(255, 166, 87, 0.10));
+  border-color: rgba(255, 196, 92, 0.45);
+}
+.tile-top { cursor: pointer; }
+.tile-name { font-size: 1.7vw; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile-state { font-size: 1.3vw; color: var(--muted); margin-top: 0.3vh; }
+.tile.on .tile-state { color: #ffd38a; }
+.tile input[type="range"] {
+  width: 100%;
+  margin-top: 1vh;
+  height: 3.5vh;
+  accent-color: #ffc45c;
+}
+.tile:not(.on) input[type="range"] { opacity: 0.35; }
+
+.hue-connect {
+  background: var(--panel);
+  border-radius: 18px;
+  padding: 2.5vh 2vw;
+  font-size: 1.6vw;
+  color: var(--muted);
+}
+.hue-connect strong { color: var(--text); }
+.hue-connect button {
+  margin-top: 1.5vh;
+  font: inherit;
+  font-size: 1.8vw;
+  color: #0d1117;
+  background: #ffc45c;
+  border: 0;
+  border-radius: 12px;
+  padding: 1.2vh 2vw;
+}
+.hue-msg { margin-top: 1vh; min-height: 1.2em; }
+
+/* Portrait sizes for the lights (kept after the base styles so they win) */
+@media (orientation: portrait) {
+  .lights-grid { grid-template-columns: repeat(auto-fill, minmax(26vw, 1fr)); gap: 2vw; }
+  .tile { padding: 1.6vh 3vw; }
+  .tile-name { font-size: 3.6vw; }
+  .tile-state { font-size: 2.8vw; }
+  .tile input[type="range"] { height: 4vh; }
+  .hue-connect { font-size: 3.4vw; padding: 2.5vh 5vw; }
+  .hue-connect button { font-size: 3.6vw; }
+}

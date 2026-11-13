@@ -6,6 +6,7 @@ const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const { execSync } = require("child_process");
+const hue = require("./lib/hue");
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, "public");
@@ -32,8 +33,40 @@ function latestChange(dir) {
   return newest;
 }
 
+function sendJson(res, code, obj) {
+  res.writeHead(code, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+  res.end(JSON.stringify(obj));
+}
+
+function readBody(req) {
+  return new Promise((resolve) => {
+    let raw = "";
+    req.on("data", (c) => (raw += c));
+    req.on("end", () => {
+      try { resolve(raw ? JSON.parse(raw) : {}); } catch { resolve({}); }
+    });
+  });
+}
+
+// ===== Hue API used by the dashboard =====
+async function handleHue(req, res, url) {
+  try {
+    if (url.pathname === "/api/hue/status") return sendJson(res, 200, hue.status());
+    if (url.pathname === "/api/hue/pair" && req.method === "POST") return sendJson(res, 200, await hue.pair());
+    if (url.pathname === "/api/hue/rooms" && req.method === "GET") return sendJson(res, 200, await hue.rooms());
+    const m = url.pathname.match(/^\/api\/hue\/rooms\/([^/]+)$/);
+    if (m && req.method === "PUT") return sendJson(res, 200, await hue.setRoom(m[1], await readBody(req)));
+    return sendJson(res, 404, { error: "Not found" });
+  } catch (err) {
+    console.error("Hue error:", err.message);
+    return sendJson(res, err.code || 500, { error: err.message });
+  }
+}
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, "http://localhost");
+
+  if (url.pathname.startsWith("/api/hue/")) return handleHue(req, res, url);
 
   if (url.pathname === "/__info") {
     let commit = "dev";

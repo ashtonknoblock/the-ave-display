@@ -13,13 +13,14 @@
 - [x] Live reload while building
 - [x] Night dim mode (10pm–6am)
 - [x] GitHub repo
-- [ ] Fully Kiosk Browser full-screen, auto-start on boot
+- [x] Fully Kiosk Browser full-screen, auto-start on boot
+- [x] Server runs on the tablet (Termux), auto-starts on boot, auto-updates from GitHub
 - [ ] Turn off "remove permissions for unused apps" for Fully Kiosk / Termux
 - [ ] Decide mounting: portrait vs landscape
 
 ## Phase 2 – Lights (Hue)
-- [ ] Pair with Hue Bridge (press button, store key in .env)
-- [ ] Room on/off + brightness
+- [x] Pair with Hue Bridge from the dashboard (key stored in .env on the tablet)
+- [x] Room on/off + brightness
 - [ ] Scene buttons (Movie, Bedtime)
 
 ## Phase 3 – Info
@@ -36,7 +37,6 @@
 - [ ] Shared grocery / to-do list
 - [ ] Calendar
 - [ ] Tap-to-talk voice commands, maybe a custom wake word
-- [ ] Move server onto the tablet (Termux) so it runs without the laptop
 
 ## Side quest
 - [ ] Unlock bootloader + root, custom "The Ave" boot animation (wipes tablet — code is safe on GitHub)

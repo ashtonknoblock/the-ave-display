@@ -143,11 +143,117 @@ async function checkForChanges() {
   }
 }
 
+// ===== Lights (Philips Hue via the local server) =====
+const lightsEl = document.getElementById("lights");
+let lightsBusyUntil = 0; // pause polling while someone is touching a tile
+
+async function api(path, options = {}) {
+  const res = await fetch(path, {
+    cache: "no-store",
+    headers: { "Content-Type": "application/json" },
+    ...options,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw Object.assign(new Error(data.error || res.statusText), { status: res.status });
+  return data;
+}
+
+function renderConnect(message = "") {
+  lightsEl.innerHTML = `
+    <div class="hue-connect">
+      <strong>Connect your Hue lights</strong><br />
+      Press the round button on top of the Hue Bridge, then tap Connect within 30 seconds.
+      <br /><button id="hue-pair">Connect</button>
+      <div class="hue-msg" id="hue-msg">${message}</div>
+    </div>`;
+  document.getElementById("hue-pair").onclick = pairHue;
+}
+
+async function pairHue() {
+  const msg = document.getElementById("hue-msg");
+  msg.textContent = "Connecting…";
+  try {
+    const r = await api("/api/hue/pair", { method: "POST" });
+    if (r.ok) return updateLights();
+    msg.textContent = r.reason === "press-button"
+      ? "Not yet: press the button on the Bridge, then tap Connect again."
+      : `Couldn't connect: ${r.reason}`;
+  } catch (err) {
+    msg.textContent = `Couldn't reach the Bridge: ${err.message}`;
+  }
+}
+
+function pct(bri) {
+  return Math.max(1, Math.round((bri / 254) * 100));
+}
+
+function renderRooms(rooms) {
+  if (!rooms.length) {
+    lightsEl.innerHTML = `<div class="hue-connect">Connected to Hue, but no rooms are set up in the Hue app yet.</div>`;
+    return;
+  }
+  lightsEl.innerHTML = `<div class="lights-grid">${rooms
+    .map(
+      (r) => `
+      <div class="tile ${r.on ? "on" : ""}" data-id="${r.id}">
+        <div class="tile-top">
+          <div class="tile-name">${r.name}</div>
+          <div class="tile-state">${r.on ? `On · ${pct(r.bri)}%` : "Off"}</div>
+        </div>
+        <input type="range" min="1" max="254" value="${r.bri}" aria-label="${r.name} brightness" />
+      </div>`
+    )
+    .join("")}</div>`;
+
+  lightsEl.querySelectorAll(".tile").forEach((tile) => {
+    const id = tile.dataset.id;
+    const state = tile.querySelector(".tile-state");
+    const slider = tile.querySelector("input");
+
+    tile.querySelector(".tile-top").onclick = async () => {
+      lightsBusyUntil = Date.now() + 3000;
+      const turnOn = !tile.classList.contains("on");
+      tile.classList.toggle("on", turnOn);
+      state.textContent = turnOn ? `On · ${pct(slider.value)}%` : "Off";
+      try { await api(`/api/hue/rooms/${id}`, { method: "PUT", body: JSON.stringify({ on: turnOn }) }); }
+      catch { updateLights(); }
+    };
+
+    slider.oninput = () => {
+      lightsBusyUntil = Date.now() + 3000;
+      tile.classList.add("on");
+      state.textContent = `On · ${pct(slider.value)}%`;
+    };
+    slider.onchange = async () => {
+      lightsBusyUntil = Date.now() + 3000;
+      try { await api(`/api/hue/rooms/${id}`, { method: "PUT", body: JSON.stringify({ bri: Number(slider.value) }) }); }
+      catch { updateLights(); }
+    };
+  });
+}
+
+async function updateLights() {
+  if (Date.now() < lightsBusyUntil) return;
+  try {
+    const { paired } = await api("/api/hue/status");
+    if (!paired) {
+      if (!document.getElementById("hue-pair")) renderConnect();
+      return;
+    }
+    renderRooms(await api("/api/hue/rooms"));
+  } catch (err) {
+    lightsEl.innerHTML = `<div class="hue-connect">Lights unavailable right now (${err.message}).</div>`;
+  }
+}
+
 // ===== Start =====
 updateClock();
 setInterval(updateClock, 1000);
 
 updateWeather();
 setInterval(updateWeather, CONFIG.weatherRefreshMinutes * 60 * 1000);
+
+updateLights();
+setInterval(updateLights, 5000);
 
 if (CONFIG.liveReload) setInterval(checkForChanges, 2000);
