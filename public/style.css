@@ -24,7 +24,7 @@ html, body {
 .layout {
   height: 100vh;
   display: grid;
-  grid-template-columns: 1.1fr 1fr;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
   grid-template-areas:
     "time weather"
     "lights weather";
@@ -36,7 +36,8 @@ html, body {
   align-items: center;
 }
 .time-panel { grid-area: time; }
-.rotator { grid-area: weather; position: relative; display: grid; }
+.rotator { grid-area: weather; position: relative; display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.rotator > .slide, .lights-panel, .time-panel { min-width: 0; }
 .lights-panel { grid-area: lights; align-self: start; }
 
 
@@ -93,7 +94,7 @@ html, body {
 /* ===== Portrait (tablet standing up) ===== */
 @media (orientation: portrait) {
   .layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-areas: "time" "weather" "lights";
     grid-template-rows: auto auto auto;
     align-content: center;
