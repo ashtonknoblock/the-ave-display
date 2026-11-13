@@ -271,9 +271,39 @@ html, body {
 /* ---------- Footer ---------- */
 .status { position: fixed; bottom: 1vh; right: 1.6vw; font-size: 1vw; color: var(--muted); opacity: 0.55; }
 
-/* ---------- Night mode ---------- */
-body { transition: filter 2s ease; }
-body.night { filter: brightness(0.35); }
+/* ---------- Display modes ---------- */
+body { transition: filter 1.5s ease; }
+body.mode-ambient { filter: brightness(0.8); }
+body.mode-nightAwake { filter: brightness(0.55); }
+body.mode-night { filter: brightness(0.35); }
+/* at night, just the clock: hide panels and dock until someone walks up */
+body.mode-night .coming-panel, body.mode-night .rotator, body.mode-night .dock,
+body.mode-night .mini-wx, body.mode-night .status { opacity: 0; transition: opacity 1.5s; }
+.coming-panel, .rotator, .dock, .mini-wx, .status { transition: opacity 0.6s; }
+
+.remote-info { margin-top: auto; font-size: 1.2vw; color: var(--muted); }
+.remote-info b { color: var(--text); font-weight: 500; }
+
+/* ---------- Older browsers without flexbox gap ---------- */
+.no-flexgap .list > * + * { margin-top: 1.3vh; }
+.no-flexgap .timer-list > * + * { margin-top: 1.2vh; }
+.no-flexgap .timer-start > * + * { margin-top: 2vh; }
+.no-flexgap .subpage > * + * { margin-top: 2.4vh; }
+.no-flexgap .dock button + button { margin-left: 1.2vw; }
+.no-flexgap .dock button span { margin-right: 0.7vw; }
+.no-flexgap .mini-wx .mw-icon { margin-right: 0.5vw; }
+.no-flexgap .time-row .clock { margin-right: 0.8vw; }
+.no-flexgap .now > * + * { margin-left: 1.8vw; }
+.no-flexgap .custom > * + * { margin-left: 0.8vw; }
+.no-flexgap .alarm-btns > * + * { margin-left: 1.6vw; }
+.no-flexgap .slide-title small { margin-left: 1vw; }
+.no-flexgap .tile-top > * + * { margin-left: 0.6vw; }
+.no-flexgap .scene span { margin-right: 0.8vw; }
+.no-flexgap .timer-pill + .timer-pill { margin-left: 0.6vw; }
+.no-flexgap .t-btns > * + * { margin-left: 0.6vw; }
+.no-flexgap .dots span + span { margin-left: 0.5vw; }
+.no-flexgap .hue-scenes > * + * { margin-left: 0.8vw; }
+.no-flexgap .hue-connect > * + * { margin-left: 1.5vw; }
 
 /* =================== Portrait fallback =================== */
 @media (orientation: portrait) {

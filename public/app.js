@@ -7,6 +7,8 @@ const CONFIG = {
   liveReload: true, // reload the page when files change on the server (handy while building)
 };
 
+let nightHours = false;
+
 // ===== Clock =====
 function updateClock() {
   const now = new Date();
@@ -22,8 +24,7 @@ function updateClock() {
   });
   const hr = now.getHours();
   const { startHour, endHour } = CONFIG.night;
-  const isNight = startHour > endHour ? hr >= startHour || hr < endHour : hr >= startHour && hr < endHour;
-  document.body.classList.toggle("night", isNight);
+  nightHours = startHour > endHour ? hr >= startHour || hr < endHour : hr >= startHour && hr < endHour;
 }
 
 // ===== Weather (Open-Meteo, free, no API key) =====
@@ -548,8 +549,17 @@ function beep(at, freq) {
   o.connect(g).connect(audioCtx.destination);
   o.start(at); o.stop(at + 0.3);
 }
+let fullyRinging = false;
 function ring(on) {
+  if (hasFully && typeof fully.playSound === "function") {
+    // Fully plays sound natively, even if nobody has touched the screen
+    if (on && !fullyRinging) { try { fully.playSound(location.origin + "/alarm.wav", true); fullyRinging = true; } catch {} }
+    if (!on && fullyRinging) { try { fully.stopSound(); } catch {} fullyRinging = false; }
+    if (on) activity();
+    return;
+  }
   if (!on) { clearInterval(ringTimer); ringTimer = null; return; }
+  activity();
   if (ringTimer || !audioCtx) return;
   const play = () => { const t = audioCtx.currentTime; [0, 0.3, 0.6].forEach((d, i) => beep(t + d, i === 2 ? 1175 : 880)); };
   play();
@@ -599,6 +609,58 @@ setInterval(() => {
   if (currentPage !== "home" && Date.now() - lastTouch > 60000 && document.getElementById("alarm").hidden) go("home");
 }, 5000);
 
+// ===== Display modes: active / ambient / night =====
+// Wakes on touch or on motion from the front camera (Fully PLUS),
+// dims when nobody's around, and goes to a dim clock at night.
+const hasFully = typeof window.fully !== "undefined";
+const DISPLAY = {
+  awakeMs: 2 * 60 * 1000,   // stay bright this long after the last touch/motion
+  brightness: { active: 200, ambient: 70, nightAwake: 60, night: 4 },
+};
+let lastActivity = Date.now();
+let lastBrightness = null;
+let displayMode = "";
+function activity() {
+  lastActivity = Date.now();
+  if (hasFully) { try { if (!fully.getScreenOn()) fully.turnScreenOn(); } catch {} }
+  applyDisplayMode();
+}
+window.onFullyMotion = activity; // called by Fully when the camera sees motion
+document.addEventListener("pointerdown", activity, true);
+function applyDisplayMode() {
+  const awake = Date.now() - lastActivity < DISPLAY.awakeMs || !document.getElementById("alarm").hidden;
+  const mode = nightHours ? (awake ? "nightAwake" : "night") : awake ? "active" : "ambient";
+  if (mode !== displayMode) {
+    document.body.classList.remove("mode-active", "mode-ambient", "mode-nightAwake", "mode-night");
+    document.body.classList.add(`mode-${mode}`);
+    displayMode = mode;
+  }
+  const b = DISPLAY.brightness[mode];
+  if (hasFully && b !== lastBrightness) {
+    try { fully.setScreenBrightness(b); lastBrightness = b; } catch {}
+  }
+}
+if (hasFully) {
+  try { fully.bind("onMotion", "onFullyMotion();"); } catch {}
+}
+setInterval(applyDisplayMode, 5000);
+
+// ===== Phone remote info (Lights page) =====
+api("/api/remote-info").then((r) => {
+  const el = document.getElementById("remote-info");
+  if (el) el.innerHTML = `📱 Phone remote: <b>${esc(r.url.replace("http://", ""))}</b> · PIN <b>${esc(r.pin)}</b>`;
+}).catch(() => {});
+
+// Older browsers (like the tablet's) ignore flexbox "gap"; detect and patch with margins.
+(function () {
+  const d = document.createElement("div");
+  d.style.cssText = "display:flex;flex-direction:column;gap:1px;position:absolute";
+  d.appendChild(document.createElement("div")); d.appendChild(document.createElement("div"));
+  document.body.appendChild(d);
+  if (d.scrollHeight !== 1) document.documentElement.classList.add("no-flexgap");
+  d.remove();
+})();
+
 // ===== Start =====
 updateClock();
 setInterval(updateClock, 1000);
@@ -617,5 +679,6 @@ setInterval(renderTimers, 500);  // smooth countdown
 updateEvents();
 setInterval(updateEvents, 10 * 60 * 1000);
 showSlide(0);
+applyDisplayMode();
 
 if (CONFIG.liveReload) setInterval(checkForChanges, 2000);

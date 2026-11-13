@@ -10,6 +10,27 @@ const { execSync } = require("child_process");
 const hue = require("./lib/hue");
 const events = require("./lib/events");
 const timers = require("./lib/timers");
+const { env, saveEnv } = require("./lib/env");
+
+// Phones on the Wi-Fi need a PIN; the tablet itself (localhost) doesn't.
+if (!env.REMOTE_PIN) {
+  env.REMOTE_PIN = String(Math.floor(1000 + Math.random() * 9000));
+  saveEnv();
+}
+function isLocal(req) {
+  const a = req.socket.remoteAddress || "";
+  return a === "127.0.0.1" || a === "::1" || a.endsWith(":127.0.0.1");
+}
+function authed(req) {
+  if (isLocal(req)) return true;
+  return (req.headers.cookie || "").split(/;\s*/).includes(`ave_pin=${env.REMOTE_PIN}`);
+}
+function lanAddress() {
+  for (const addrs of Object.values(os.networkInterfaces())) {
+    for (const a of addrs || []) if (a.family === "IPv4" && !a.internal) return a.address;
+  }
+  return "localhost";
+}
 
 const PORT = process.env.PORT || 3000;
 const STARTED_AT = Date.now(); // changes on every restart, so open pages reload after server updates
@@ -23,6 +44,7 @@ const MIME = {
   ".png": "image/png",
   ".svg": "image/svg+xml",
   ".ico": "image/x-icon",
+  ".wav": "audio/wav",
 };
 
 // Newest modified time of any file in public/ — the page polls this and
@@ -73,6 +95,22 @@ async function handleHue(req, res, url) {
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, "http://localhost");
 
+  if (url.pathname === "/api/login" && req.method === "POST") {
+    readBody(req).then((b) => {
+      if (String(b.pin || "") === env.REMOTE_PIN) {
+        res.setHeader("Set-Cookie", `ave_pin=${env.REMOTE_PIN}; Max-Age=31536000; Path=/; SameSite=Lax`);
+        return sendJson(res, 200, { ok: true });
+      }
+      setTimeout(() => sendJson(res, 401, { ok: false }), 800);
+    });
+    return;
+  }
+  if (url.pathname === "/api/remote-info") {
+    if (!isLocal(req)) return sendJson(res, 403, { error: "tablet only" });
+    return sendJson(res, 200, { url: `http://${lanAddress()}:${PORT}/remote`, pin: env.REMOTE_PIN });
+  }
+  if (url.pathname.startsWith("/api/") && !authed(req)) return sendJson(res, 401, { error: "PIN required" });
+
   if (url.pathname.startsWith("/api/hue/")) return handleHue(req, res, url);
 
   if (url.pathname.startsWith("/api/timers")) {
@@ -113,7 +151,8 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify({ version: `${latestChange(PUBLIC_DIR)}-${STARTED_AT}` }));
   }
 
-  let filePath = path.join(PUBLIC_DIR, url.pathname === "/" ? "index.html" : url.pathname);
+  const page = url.pathname === "/" ? "index.html" : url.pathname === "/remote" ? "remote.html" : url.pathname;
+  let filePath = path.join(PUBLIC_DIR, page);
   if (!filePath.startsWith(PUBLIC_DIR)) {
     res.writeHead(403);
     return res.end("Forbidden");

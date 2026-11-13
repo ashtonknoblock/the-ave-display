@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="The Ave" />
+  <meta name="theme-color" content="#0d1117" />
+  <title>The Ave</title>
+  <style>
+    :root { --bg:#0d1117; --panel:#161b22; --panel2:#1c232d; --text:#e6edf3; --muted:#8b949e; --gold:#ffc45c; --red:#ff7b72; }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { background: var(--bg); color: var(--text); font: 16px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+           padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 84px); min-height: 100vh; }
+    h1 { font-size: 28px; font-weight: 600; margin-bottom: 4px; }
+    .sub { color: var(--muted); font-size: 14px; margin-bottom: 18px; }
+    h2 { font-size: 15px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .06em; margin: 22px 0 10px; }
+    button { font: inherit; color: var(--text); background: var(--panel); border: 0; border-radius: 16px; touch-action: manipulation; }
+    button:active { transform: scale(.97); }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .scene { padding: 18px 10px; font-size: 17px; }
+    .scene span { display: block; font-size: 26px; margin-bottom: 4px; }
+    .flash { background: rgba(255,196,92,.35) !important; }
+    .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+    .chips button { flex: 0 0 auto; border-radius: 999px; padding: 10px 14px; background: var(--panel2); font-size: 15px; white-space: nowrap; }
+    .chips small { color: var(--muted); margin-left: 6px; }
+    .room { background: var(--panel); border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; border: 1.5px solid transparent; }
+    .room.on { border-color: rgba(255,196,92,.4); background: linear-gradient(160deg, rgba(255,196,92,.18), rgba(255,166,87,.05)); }
+    .room-top { display: flex; justify-content: space-between; align-items: center; }
+    .room-name { font-size: 18px; font-weight: 500; }
+    .room-state { color: var(--muted); font-size: 14px; margin-top: 2px; }
+    .room.on .room-state { color: #ffd38a; }
+    .toggle { width: 58px; height: 34px; border-radius: 999px; background: var(--panel2); position: relative; }
+    .toggle::after { content: ""; position: absolute; top: 4px; left: 4px; width: 26px; height: 26px; border-radius: 50%; background: var(--muted); transition: .2s; }
+    .room.on .toggle { background: rgba(255,196,92,.55); }
+    .room.on .toggle::after { left: 28px; background: #fff; }
+    input[type=range] { width: 100%; margin-top: 12px; accent-color: var(--gold); height: 28px; }
+    .room:not(.on) input[type=range] { opacity: .35; }
+    .presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .presets button { padding: 16px 0; font-size: 20px; font-weight: 300; }
+    .presets small { display: block; font-size: 11px; color: var(--muted); }
+    .timer { background: var(--panel); border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .timer.done { background: rgba(255,123,114,.2); }
+    .t-left { font-size: 32px; font-weight: 300; font-variant-numeric: tabular-nums; }
+    .t-label { color: var(--muted); font-size: 13px; }
+    .timer button { padding: 12px 14px; background: var(--panel2); margin-left: 6px; }
+    .empty { color: var(--muted); font-size: 15px; padding: 6px 2px; }
+    .tabs { position: fixed; left: 0; right: 0; bottom: 0; display: flex; background: rgba(13,17,23,.95); border-top: 1px solid #222a35;
+            padding: 8px 12px calc(env(safe-area-inset-bottom) + 8px); gap: 8px; }
+    .tabs button { flex: 1; padding: 10px 0; background: transparent; color: var(--muted); font-size: 14px; }
+    .tabs button span { display: block; font-size: 22px; }
+    .tabs button.on { background: var(--panel); color: var(--text); }
+    .view { display: none; } .view.on { display: block; }
+    .login { max-width: 320px; margin: 18vh auto 0; text-align: center; }
+    .login input { width: 100%; font: inherit; font-size: 32px; letter-spacing: .4em; text-align: center; padding: 14px; border-radius: 16px;
+                   border: 1.5px solid #2a3340; background: var(--panel); color: var(--text); margin: 18px 0 12px; }
+    .login button { width: 100%; padding: 16px; background: var(--gold); color: #0d1117; font-weight: 600; font-size: 18px; }
+    .err { color: var(--red); min-height: 22px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div id="login" class="login" hidden>
+    <h1>The Ave</h1>
+    <div class="sub">Enter the PIN shown on the tablet's Lights page.</div>
+    <input id="pin" inputmode="numeric" maxlength="6" autocomplete="one-time-code" />
+    <button id="go">Unlock</button>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div id="app" hidden>
+    <section class="view on" data-view="lights">
+      <h1>Lights</h1>
+      <div class="grid" id="scenes"></div>
+      <div class="chips" id="hue-scenes" style="margin-top:10px"></div>
+      <h2>Rooms</h2>
+      <div id="rooms"></div>
+    </section>
+    <section class="view" data-view="timers">
+      <h1>Timers</h1>
+      <div class="sub">Rings on the tablet.</div>
+      <div class="presets" id="presets"></div>
+      <h2>Running</h2>
+      <div id="timers"></div>
+    </section>
+  </div>
+
+  <nav class="tabs" id="tabs" hidden>
+    <button data-v="lights" class="on"><span>💡</span>Lights</button>
+    <button data-v="timers"><span>⏲️</span>Timers</button>
+  </nav>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (t = "") => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+async function api(path, opts = {}) {
+  const r = await fetch(path, { cache: "no-store", headers: { "Content-Type": "application/json" }, ...opts });
+  if (r.status === 401) { showLogin(); throw new Error("locked"); }
+  return r.json();
+}
+
+// ----- login -----
+function showLogin() { $("login").hidden = false; $("app").hidden = true; $("tabs").hidden = true; }
+function showApp() { $("login").hidden = true; $("app").hidden = false; $("tabs").hidden = false; refresh(); }
+$("go").onclick = async () => {
+  const r = await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pin: $("pin").value.trim() }) });
+  if (r.ok) showApp(); else $("err").textContent = "That PIN didn't work.";
+};
+$("pin").addEventListener("keydown", (e) => { if (e.key === "Enter") $("go").click(); });
+
+// ----- tabs -----
+document.querySelectorAll("#tabs button").forEach((b) => (b.onclick = () => {
+  document.querySelectorAll("#tabs button").forEach((x) => x.classList.toggle("on", x === b));
+  document.querySelectorAll(".view").forEach((v) => v.classList.toggle("on", v.dataset.view === b.dataset.v));
+  refresh();
+}));
+
+// ----- lights -----
+let busyUntil = 0;
+const flash = (b) => { b.classList.add("flash"); setTimeout(() => b.classList.remove("flash"), 700); };
+async function loadScenes() {
+  const { builtIn, hue } = await api("/api/hue/scenes");
+  $("scenes").innerHTML = builtIn.map((x) => `<button class="scene" data-s="${x.id}"><span>${x.icon}</span>${esc(x.name)}</button>`).join("");
+  $("hue-scenes").innerHTML = hue.map((x) => `<button data-s="hue:${x.id}:${x.group}">${esc(x.name)}<small>${esc(x.room)}</small></button>`).join("");
+  document.querySelectorAll("[data-s]").forEach((b) => (b.onclick = async () => {
+    flash(b); await api(`/api/hue/scenes/${encodeURIComponent(b.dataset.s)}`, { method: "POST" }); setTimeout(loadRooms, 500);
+  }));
+}
+async function loadRooms() {
+  if (Date.now() < busyUntil) return;
+  const rooms = await api("/api/hue/rooms");
+  $("rooms").innerHTML = rooms.map((r) => `
+    <div class="room ${r.on ? "on" : ""}" data-id="${r.id}">
+      <div class="room-top"><div><div class="room-name">${esc(r.name)}</div>
+        <div class="room-state">${r.on ? `On · ${Math.max(1, Math.round(r.bri / 2.54))}%` : "Off"}</div></div>
+        <button class="toggle" aria-label="Toggle ${esc(r.name)}"></button></div>
+      <input type="range" min="1" max="254" value="${r.bri}" />
+    </div>`).join("");
+  document.querySelectorAll(".room").forEach((el) => {
+    const id = el.dataset.id;
+    el.querySelector(".toggle").onclick = async () => {
+      busyUntil = Date.now() + 2500;
+      const on = !el.classList.contains("on");
+      el.classList.toggle("on", on);
+      await api(`/api/hue/rooms/${id}`, { method: "PUT", body: JSON.stringify({ on }) });
+    };
+    const sl = el.querySelector("input");
+    sl.oninput = () => { busyUntil = Date.now() + 2500; el.classList.add("on"); };
+    sl.onchange = () => api(`/api/hue/rooms/${id}`, { method: "PUT", body: JSON.stringify({ bri: Number(sl.value) }) });
+  });
+}
+
+// ----- timers -----
+const fmt = (ms) => { const t = Math.max(0, Math.ceil(ms / 1000)), h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;
+  return h ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}` : `${m}:${String(s).padStart(2, "0")}`; };
+$("presets").innerHTML = [1, 3, 5, 10, 15, 20, 30, 60].map((m) => `<button data-m="${m}">${m >= 60 ? 1 : m}<small>${m >= 60 ? "hour" : "min"}</small></button>`).join("");
+document.querySelectorAll("[data-m]").forEach((b) => (b.onclick = async () => {
+  flash(b); await api("/api/timers", { method: "POST", body: JSON.stringify({ seconds: Number(b.dataset.m) * 60 }) }); loadTimers();
+}));
+let tState = { timers: [], offset: 0 };
+async function loadTimers() { const r = await api("/api/timers"); tState = { timers: r.timers, offset: r.now - Date.now() }; drawTimers(true); }
+let tKey = "";
+function drawTimers(force) {
+  const now = Date.now() + tState.offset;
+  const key = tState.timers.map((t) => `${t.id}:${t.endsAt}:${t.endsAt <= now}`).join("|");
+  if (!force && key === tKey) {
+    tState.timers.forEach((t) => { const el = document.querySelector(`[data-tl="${t.id}"]`); if (el) el.textContent = t.endsAt <= now ? "Done" : fmt(t.endsAt - now); });
+    return;
+  }
+  tKey = key;
+  $("timers").innerHTML = tState.timers.length ? tState.timers.map((t) => `
+    <div class="timer ${t.endsAt <= now ? "done" : ""}"><div><div class="t-label">${esc(t.label)}</div>
+      <div class="t-left" data-tl="${t.id}">${t.endsAt <= now ? "Done" : fmt(t.endsAt - now)}</div></div>
+      <div><button data-t="${t.id}" data-a="add">+1m</button><button data-t="${t.id}" data-a="stop">✕</button></div></div>`).join("")
+    : `<div class="empty">No timers running.</div>`;
+  document.querySelectorAll("[data-t]").forEach((b) => (b.onclick = async () => {
+    if (b.dataset.a === "stop") await api(`/api/timers/${b.dataset.t}`, { method: "DELETE" });
+    else await api(`/api/timers/${b.dataset.t}/add`, { method: "POST", body: JSON.stringify({ seconds: 60 }) });
+    loadTimers();
+  }));
+}
+
+// ----- refresh loop -----
+let scenesLoaded = false;
+async function refresh() {
+  try {
+    if (!scenesLoaded) { await loadScenes(); scenesLoaded = true; }
+    await Promise.all([loadRooms(), loadTimers()]);
+  } catch {}
+}
+setInterval(() => { if (!$("app").hidden && document.visibilityState === "visible") refresh(); }, 3000);
+setInterval(() => drawTimers(false), 500);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") refresh(); });
+
+// start: try the API; a 401 shows the PIN screen
+api("/api/timers").then(showApp).catch(() => {});
+</script>
+</body>
+</html>
