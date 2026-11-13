@@ -273,16 +273,24 @@ function renderDates(data) {
   watchScroll(document.getElementById("coming"));
   watchScroll(document.getElementById("slide-dates"));
 }
+function mineRow(ev) {
+  const n = dayDiff(ev.start);
+  const chip = n <= 0 ? "<b>Today</b>" : n === 1 ? "<b>Tmrw</b>" : `in <b>${n}</b> days`;
+  return `<div class="item"><div class="chip ${n <= 0 ? "today" : n <= 3 ? "soon" : ""}">${chip}</div>
+    <div><div class="item-title">${esc(ev.title)}</div><div class="item-sub">${esc(whenLabel(ev))}${ev.location ? " · " + esc(ev.location) : ""}</div></div></div>`;
+}
+function localRow(ev) {
+  const d = new Date(ev.start);
+  const n = dayDiff(ev.start);
+  const top = n <= 0 ? "Today" : n === 1 ? "Tmrw" : d.toLocaleDateString("en-US", { weekday: "short" });
+  return `<div class="item"><div class="chip ${n <= 1 ? "soon" : ""}">${top}<b>${d.getMonth() + 1}/${d.getDate()}</b></div>
+    <div><div class="item-title">${esc(ev.title)}</div><div class="item-sub">${ev.allDay ? "" : esc(d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).replace(":00", "")) + " · "}${esc(ev.location || ev.source)}</div></div></div>`;
+}
 function datesHtml(data) {
   if (!data.configured) return "";
   const items = data.items.slice(0, 20);
   return `<div class="slide-title">Coming up <small>The Ave calendar</small></div>` + (items.length
-    ? `<div class="list">${items.map((ev) => {
-        const n = dayDiff(ev.start);
-        const chip = n <= 0 ? "<b>Today</b>" : n === 1 ? "<b>Tmrw</b>" : `in <b>${n}</b> days`;
-        return `<div class="item"><div class="chip ${n <= 0 ? "today" : n <= 3 ? "soon" : ""}">${chip}</div>
-          <div><div class="item-title">${esc(ev.title)}</div><div class="item-sub">${esc(whenLabel(ev))}${ev.location ? " · " + esc(ev.location) : ""}</div></div></div>`;
-      }).join("")}</div>`
+    ? `<div class="list">${items.map(mineRow).join("")}</div>`
     : `<div class="empty">Nothing on the calendar for the next two months.</div>`);
 }
 
@@ -346,14 +354,15 @@ function renderLocal(data) {
   const items = data.items.slice(0, 30);
   if (!items.length) { el.innerHTML = ""; return; }
   el.innerHTML = `<div class="slide-title">Around Columbus <small>next 10 days</small></div>
-    <div class="list">${items.map((ev) => {
-      const d = new Date(ev.start);
-      const n = dayDiff(ev.start);
-      const top = n <= 0 ? "Today" : n === 1 ? "Tmrw" : d.toLocaleDateString("en-US", { weekday: "short" });
-      return `<div class="item"><div class="chip ${n <= 1 ? "soon" : ""}">${top}<b>${d.getMonth() + 1}/${d.getDate()}</b></div>
-        <div><div class="item-title">${esc(ev.title)}</div><div class="item-sub">${ev.allDay ? "" : esc(d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).replace(":00", "")) + " · "}${esc(ev.location || ev.source)}</div></div></div>`;
-    }).join("")}</div>`;
+    <div class="list">${items.map(localRow).join("")}</div>`;
   watchScroll(el);
+}
+
+function renderCalendarPage(data) {
+  const mine = data.personal.items || [];
+  const local = data.local.items || [];
+  document.getElementById("cal-mine").innerHTML = mine.length ? mine.map(mineRow).join("") : `<div class="empty">Nothing planned yet.</div>`;
+  document.getElementById("cal-local").innerHTML = local.length ? local.map(localRow).join("") : `<div class="empty">No events found.</div>`;
 }
 
 let lastEvents = null;
@@ -364,6 +373,7 @@ async function updateEvents() {
     renderDates(data.personal);
     renderLocal(data.local);
     renderWeekend(data);
+    renderCalendarPage(data);
   } catch (err) {
     console.error("Events failed:", err);
   }
@@ -409,6 +419,186 @@ document.getElementById("rotator").addEventListener("click", (e) => {
   showSlide(slideIndex + 1);
 });
 
+// ===== Light scenes =====
+function flash(btn) { btn.classList.add("flash"); setTimeout(() => btn.classList.remove("flash"), 700); }
+async function runScene(id, btn) {
+  flash(btn);
+  lightsBusyUntil = 0;
+  try { await api(`/api/hue/scenes/${encodeURIComponent(id)}`, { method: "POST" }); } catch (err) { console.error(err); }
+  setTimeout(updateLights, 600);
+}
+async function updateScenes() {
+  try {
+    const { builtIn, hue } = await api("/api/hue/scenes");
+    const sc = document.getElementById("scenes");
+    sc.innerHTML = builtIn.map((x) => `<button class="scene" data-scene="${x.id}"><span>${x.icon}</span>${esc(x.name)}</button>`).join("");
+    const hs = document.getElementById("hue-scenes");
+    hs.innerHTML = hue.map((x) => `<button class="chip-btn" data-scene="hue:${x.id}:${x.group}">${esc(x.name)}<small>${esc(x.room)}</small></button>`).join("");
+    document.querySelectorAll("[data-scene]").forEach((b) => (b.onclick = () => runScene(b.dataset.scene, b)));
+  } catch {
+    document.getElementById("scenes").innerHTML = "";
+  }
+}
+
+// ===== Timers =====
+const PRESETS = [1, 3, 5, 10, 15, 20, 30, 60];
+let timerState = { timers: [], offset: 0 }; // offset = server clock - tablet clock
+let customSeconds = 300;
+const fmtLeft = (ms) => {
+  const t = Math.max(0, Math.ceil(ms / 1000));
+  const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s2 = t % 60;
+  return h ? `${h}:${String(m).padStart(2, "0")}:${String(s2).padStart(2, "0")}` : `${m}:${String(s2).padStart(2, "0")}`;
+};
+document.getElementById("presets").innerHTML = PRESETS.map((m) =>
+  `<button class="preset" data-min="${m}">${m >= 60 ? m / 60 : m}<small>${m >= 60 ? "hour" : "min"}</small></button>`).join("");
+document.querySelectorAll(".preset").forEach((b) => (b.onclick = () => startTimer(Number(b.dataset.min) * 60)));
+document.querySelectorAll(".adj").forEach((b) => (b.onclick = () => {
+  customSeconds = Math.max(60, Math.min(6 * 3600, customSeconds + Number(b.dataset.adj)));
+  document.getElementById("custom-time").textContent = fmtLeft(customSeconds * 1000);
+}));
+document.getElementById("custom-go").onclick = () => startTimer(customSeconds);
+
+async function startTimer(seconds) {
+  unlockAudio();
+  try { await api("/api/timers", { method: "POST", body: JSON.stringify({ seconds }) }); } catch (err) { console.error(err); }
+  loadTimers();
+}
+async function timerAction(id, action) {
+  if (action === "stop") await api(`/api/timers/${id}`, { method: "DELETE" }).catch(() => {});
+  else await api(`/api/timers/${id}/add`, { method: "POST", body: JSON.stringify({ seconds: 60 }) }).catch(() => {});
+  loadTimers();
+}
+async function loadTimers() {
+  try {
+    const r = await api("/api/timers");
+    timerState = { timers: r.timers, offset: r.now - Date.now() };
+    renderTimers();
+  } catch {}
+}
+let timerKey = "";
+function renderTimers() {
+  const now = Date.now() + timerState.offset;
+  const list = document.getElementById("timer-list");
+  const ts = timerState.timers;
+  const key = ts.map((t) => `${t.id}:${t.endsAt}:${t.endsAt <= now}`).join("|");
+  if (key === timerKey) {
+    // same timers: just tick the numbers (keeps buttons stable for taps)
+    ts.forEach((t) => {
+      const card = list.querySelector(`[data-card="${t.id}"]`);
+      if (!card) return;
+      const left = t.endsAt - now;
+      card.querySelector(".t-left").textContent = left <= 0 ? "Done" : fmtLeft(left);
+      card.querySelector(".bar").style.width = `${Math.max(0, Math.min(100, (left / t.durationMs) * 100))}%`;
+    });
+    document.querySelectorAll(".timer-pill b").forEach((b) => {
+      const t = ts.find((x) => x.id === Number(b.dataset.id));
+      if (t) b.textContent = fmtLeft(t.endsAt - now);
+    });
+    return;
+  }
+  timerKey = key;
+  list.innerHTML = ts.length ? ts.map((t) => {
+    const left = t.endsAt - now;
+    const pct = Math.max(0, Math.min(100, (left / t.durationMs) * 100));
+    return `<div class="timer-card ${left <= 0 ? "done" : ""}" data-card="${t.id}">
+      <div class="t-label">${esc(t.label)}</div>
+      <div class="t-left">${left <= 0 ? "Done" : fmtLeft(left)}</div>
+      <div class="t-btns"><button data-t="${t.id}" data-a="add">+1m</button><button data-t="${t.id}" data-a="stop">✕</button></div>
+      <div class="bar" style="width:${pct}%"></div></div>`;
+  }).join("") : `<div class="timer-empty">No timers running. Tap a time to start one.<br />“Hey Google, set a timer” works too.</div>`;
+  list.querySelectorAll("[data-t]").forEach((b) => (b.onclick = () => timerAction(b.dataset.t, b.dataset.a)));
+
+  // pills on every page
+  const running = ts.filter((t) => t.endsAt > now);
+  document.getElementById("timer-pills").innerHTML = running.slice(0, 3).map((t) =>
+    `<div class="timer-pill">⏲️<b data-id="${t.id}">${fmtLeft(t.endsAt - now)}</b></div>`).join("");
+  document.querySelectorAll(".timer-pill").forEach((p) => (p.onclick = () => go("timers")));
+
+  // ringing?
+  const ringing = ts.find((t) => t.endsAt <= now);
+  const alarm = document.getElementById("alarm");
+  if (ringing) {
+    alarm.hidden = false;
+    alarm.dataset.id = ringing.id;
+    document.getElementById("alarm-title").textContent = ringing.label.replace(/ timer$/, "") + " — time's up";
+    ring(true);
+  } else {
+    alarm.hidden = true;
+    ring(false);
+  }
+}
+document.getElementById("alarm-stop").onclick = () => { ring(false); timerAction(document.getElementById("alarm").dataset.id, "stop"); };
+document.getElementById("alarm-snooze").onclick = () => { ring(false); timerAction(document.getElementById("alarm").dataset.id, "add"); };
+
+// Alarm sound (Web Audio beeps). Browsers only allow sound after a tap,
+// so the audio is unlocked on the first touch anywhere.
+let audioCtx = null;
+let ringTimer = null;
+function unlockAudio() {
+  if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch {} }
+  if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+}
+document.addEventListener("pointerdown", unlockAudio);
+function beep(at, freq) {
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = "sine"; o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, at);
+  g.gain.exponentialRampToValueAtTime(0.5, at + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, at + 0.25);
+  o.connect(g).connect(audioCtx.destination);
+  o.start(at); o.stop(at + 0.3);
+}
+function ring(on) {
+  if (!on) { clearInterval(ringTimer); ringTimer = null; return; }
+  if (ringTimer || !audioCtx) return;
+  const play = () => { const t = audioCtx.currentTime; [0, 0.3, 0.6].forEach((d, i) => beep(t + d, i === 2 ? 1175 : 880)); };
+  play();
+  ringTimer = setInterval(play, 1600);
+}
+
+// ===== Pages: dock, swipe, auto-return home =====
+const PAGES = ["home", "lights", "timers", "calendar"];
+let currentPage = "home";
+let lastTouch = Date.now();
+function go(name) {
+  if (!PAGES.includes(name) || name === currentPage) return;
+  const dir = PAGES.indexOf(name) > PAGES.indexOf(currentPage) ? 1 : -1;
+  document.querySelectorAll(".page").forEach((p) => {
+    const on = p.dataset.page === name;
+    p.style.setProperty("--from", `${dir * 6}vw`);
+    p.classList.toggle("active", on);
+  });
+  document.querySelectorAll(".dock button").forEach((b) => b.classList.toggle("on", b.dataset.go === name));
+  document.body.classList.toggle("on-timers", name === "timers");
+  currentPage = name;
+  if (name === "lights") { updateLights(); updateScenes(); }
+  if (name === "timers") loadTimers();
+}
+document.querySelectorAll(".dock button").forEach((b) => (b.onclick = () => go(b.dataset.go)));
+document.querySelector('.dock button[data-go="home"]').classList.add("on");
+
+// swipe left/right to move between pages (not while dragging a slider)
+let sx = 0, sy = 0, swipeOk = false;
+const pagesEl = document.getElementById("pages");
+pagesEl.addEventListener("touchstart", (e) => {
+  const t = e.touches[0]; sx = t.clientX; sy = t.clientY;
+  swipeOk = !e.target.closest('input[type="range"], .hue-scenes');
+}, { passive: true });
+pagesEl.addEventListener("touchend", (e) => {
+  if (!swipeOk) return;
+  const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+  if (Math.abs(dx) > 90 && Math.abs(dy) < 60) {
+    const i = PAGES.indexOf(currentPage) + (dx < 0 ? 1 : -1);
+    if (i >= 0 && i < PAGES.length) go(PAGES[i]);
+  }
+}, { passive: true });
+
+// back to Home after 60s of no touches
+document.addEventListener("pointerdown", () => (lastTouch = Date.now()), true);
+setInterval(() => {
+  if (currentPage !== "home" && Date.now() - lastTouch > 60000 && document.getElementById("alarm").hidden) go("home");
+}, 5000);
+
 // ===== Start =====
 updateClock();
 setInterval(updateClock, 1000);
@@ -418,6 +608,11 @@ setInterval(updateWeather, CONFIG.weatherRefreshMinutes * 60 * 1000);
 
 updateLights();
 setInterval(updateLights, 5000);
+updateScenes();
+
+loadTimers();
+setInterval(loadTimers, 5000);   // pick up timers started elsewhere
+setInterval(renderTimers, 500);  // smooth countdown
 
 updateEvents();
 setInterval(updateEvents, 10 * 60 * 1000);

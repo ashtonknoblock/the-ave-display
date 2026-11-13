@@ -4,3 +4,4 @@ node_modules/
 tools/
 claude-step.bat
 step*.bat
+data/

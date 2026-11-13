@@ -36,7 +36,15 @@
 - [ ] Experience Columbus / Eventbrite
 - [ ] Tune the event filter after a week of real use
 
-## Phase 4 – Timers
+## Smart home roadmap (team plan, Nov 13)
+Navigation: Home stays glanceable; bottom dock + swipe for other pages; auto-return Home after 60s idle.
+- [x] Sprint 1: dock + swipe pages, Timers page (presets, custom, alarm, pills on every page), Lights page with scenes (All on / Movie / Bedtime / All off + Hue app scenes), Calendar page
+- [ ] Sprint 2: display modes (active / ambient / night) + motion wake via Fully Plus; phone remote page (PIN, same Wi-Fi); reserve tablet IP in router
+- [ ] Sprint 3: shared grocery list (live sync), household reminders, nightly backup of data/
+- [ ] Sprint 4: sports strip + Knobability, morning brief, drive time to OSU Wexner
+- [ ] Sprint 5: voice test (tap-to-talk), sunset / bedtime / wake-up light automations
+
+## Phase 4 – Timers (old notes)
 - [ ] Big tap-to-start timers (5/10/15) with alarm sound
 - [ ] Multiple timers
 - [ ] Cooking-friendly layout

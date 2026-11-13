@@ -9,6 +9,7 @@ const os = require("os");
 const { execSync } = require("child_process");
 const hue = require("./lib/hue");
 const events = require("./lib/events");
+const timers = require("./lib/timers");
 
 const PORT = process.env.PORT || 3000;
 const STARTED_AT = Date.now(); // changes on every restart, so open pages reload after server updates
@@ -59,6 +60,9 @@ async function handleHue(req, res, url) {
     if (url.pathname === "/api/hue/rooms" && req.method === "GET") return sendJson(res, 200, await hue.rooms());
     const m = url.pathname.match(/^\/api\/hue\/rooms\/([^/]+)$/);
     if (m && req.method === "PUT") return sendJson(res, 200, await hue.setRoom(m[1], await readBody(req)));
+    if (url.pathname === "/api/hue/scenes" && req.method === "GET") return sendJson(res, 200, await hue.scenes());
+    const sc = url.pathname.match(/^\/api\/hue\/scenes\/(.+)$/);
+    if (sc && req.method === "POST") return sendJson(res, 200, await hue.runScene(decodeURIComponent(sc[1])));
     return sendJson(res, 404, { error: "Not found" });
   } catch (err) {
     console.error("Hue error:", err.message);
@@ -70,6 +74,24 @@ const server = http.createServer((req, res) => {
   const url = new URL(req.url, "http://localhost");
 
   if (url.pathname.startsWith("/api/hue/")) return handleHue(req, res, url);
+
+  if (url.pathname.startsWith("/api/timers")) {
+    (async () => {
+      const id = (url.pathname.match(/^\/api\/timers\/(\d+)/) || [])[1];
+      if (!id && req.method === "GET") return sendJson(res, 200, timers.list());
+      if (!id && req.method === "POST") {
+        const b = await readBody(req);
+        return sendJson(res, 200, timers.add(b.seconds, b.label));
+      }
+      if (id && req.method === "DELETE") return sendJson(res, 200, { ok: timers.remove(id) });
+      if (id && url.pathname.endsWith("/add") && req.method === "POST") {
+        const b = await readBody(req);
+        return sendJson(res, 200, timers.addTime(id, Number(b.seconds) || 60));
+      }
+      sendJson(res, 404, { error: "Not found" });
+    })().catch((err) => sendJson(res, 500, { error: err.message }));
+    return;
+  }
 
   if (url.pathname === "/api/events") {
     events.personal()
