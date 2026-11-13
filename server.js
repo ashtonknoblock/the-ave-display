@@ -5,6 +5,7 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
+const { execSync } = require("child_process");
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, "public");
@@ -33,6 +34,13 @@ function latestChange(dir) {
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, "http://localhost");
+
+  if (url.pathname === "/__info") {
+    let commit = "dev";
+    try { commit = execSync("git rev-parse --short HEAD", { cwd: __dirname }).toString().trim(); } catch {}
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+    return res.end(JSON.stringify({ commit }));
+  }
 
   if (url.pathname === "/__version") {
     res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });

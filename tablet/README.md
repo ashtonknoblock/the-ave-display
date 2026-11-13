@@ -9,9 +9,12 @@ How the tablet runs the dashboard on its own:
 
 ## Rebuild after a wipe
 1. Install Termux + Termux:Boot (GitHub releases), open each once
-2. In Termux: `sh setup.sh` (this folder) — installs Node + git, clones the repo, installs the boot script
-3. Whitelist both apps from battery optimization
-4. Fully Kiosk: start URL `http://localhost:3000`, auto reload after page error 10s, keep screen on
+2. In Termux: `sh setup.sh` (this folder) — installs Node + git, clones the repo
+3. Copy `boot-stub.sh` to `~/.termux/boot/start-display.sh` and `chmod +x` it
+4. Whitelist both apps from battery optimization
+5. Fully Kiosk: start URL `http://localhost:3000`, auto reload after page error 10s, keep screen on
 
 ## Updating
-Push to GitHub, then reboot the tablet — it pulls on boot.
+Automatic: `tablet/updater.sh` checks GitHub every 2 minutes and pulls new commits.
+Page changes appear on their own (live reload); changes to `server.js` or `tablet/` restart the server.
+The commit ID in the bottom-right corner shows which version the tablet is running.

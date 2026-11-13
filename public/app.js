@@ -116,9 +116,14 @@ function renderForecast(d) {
     .join("");
 }
 
+let buildTag = "";
 function setStatus(text) {
-  document.getElementById("status").textContent = text;
+  document.getElementById("status").textContent = buildTag ? `${text} · ${buildTag}` : text;
 }
+fetch("/__info", { cache: "no-store" })
+  .then((r) => r.json())
+  .then(({ commit }) => { buildTag = commit; })
+  .catch(() => {});
 
 // ===== Live reload (only while building) =====
 let knownVersion = null;
