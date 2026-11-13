@@ -426,6 +426,7 @@ document.getElementById("rotator").addEventListener("click", (e) => {
 // ===== Light scenes =====
 // Pick a room, then its Hue-app scenes show as buttons.
 let hueSceneList = [];
+let holidayList = [];
 let roomList = [];
 let pickedRoom = null; // room id
 try { pickedRoom = localStorage.getItem("ave-room-id"); } catch {}
@@ -433,7 +434,7 @@ function renderRoomScenes() {
   const pick = document.getElementById("room-pick");
   const hs = document.getElementById("hue-scenes");
   const rooms = roomList;
-  if (!rooms.length || !hueSceneList.length) { pick.innerHTML = ""; hs.innerHTML = ""; return; }
+  if (!rooms.length || !(hueSceneList.length || holidayList.length)) { pick.innerHTML = ""; hs.innerHTML = ""; return; }
   if (!rooms.some((r) => r.id === pickedRoom)) pickedRoom = rooms[0].id;
   pick.innerHTML = `<span class="pick-label">Scenes for</span>` + rooms.map((r) =>
     `<button class="pick ${r.id === pickedRoom ? "on" : ""}" data-room="${r.id}">${esc(r.name)}</button>`).join("");
@@ -443,7 +444,8 @@ function renderRoomScenes() {
     renderRoomScenes();
   }));
   const seen = new Set();
-  hs.innerHTML = hueSceneList.filter((x) => (seen.has(x.name) ? false : seen.add(x.name))).map((x) =>
+  hs.innerHTML = holidayList.map((x) =>
+    `<button class="chip-btn holiday" data-scene="holiday:${x.id}:${pickedRoom}">${x.icon} ${esc(x.name)}</button>`).join("") + hueSceneList.filter((x) => (seen.has(x.name) ? false : seen.add(x.name))).map((x) =>
     `<button class="chip-btn" data-scene="hue:${x.id}:${pickedRoom}">${esc(x.name)}</button>`).join("");
   hs.querySelectorAll("[data-scene]").forEach((b) => (b.onclick = () => runScene(b.dataset.scene, b)));
 }
@@ -455,10 +457,11 @@ async function runScene(id, btn) {
 }
 async function updateScenes() {
   try {
-    const { builtIn, hue } = await api("/api/hue/scenes");
+    const { builtIn, hue, holiday } = await api("/api/hue/scenes");
     const sc = document.getElementById("scenes");
     sc.innerHTML = builtIn.map((x) => `<button class="scene" data-scene="${x.id}"><span>${x.icon}</span>${esc(x.name)}</button>`).join("");
     hueSceneList = hue;
+    holidayList = holiday || [];
     sc.querySelectorAll("[data-scene]").forEach((b) => (b.onclick = () => runScene(b.dataset.scene, b)));
     renderRoomScenes();
   } catch {

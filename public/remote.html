@@ -32,6 +32,8 @@
     h2 b { color: var(--gold); font-weight: 600; text-transform: none; letter-spacing: 0; }
     .scene-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .scene-grid button { padding: 12px 6px; font-size: 14px; background: var(--panel2); line-height: 1.2; }
+    .holiday button { background: linear-gradient(135deg, rgba(255,90,90,.22), rgba(60,200,120,.18)); }
+    .holiday button span { margin-right: 4px; }
     .room.sel { outline: 2.5px solid var(--gold); outline-offset: 2px; }
     .room .sel-tag { display: none; font-size: 12px; color: var(--gold); font-weight: 600; margin-left: 8px; }
     .room.sel .sel-tag { display: inline; }
@@ -84,6 +86,8 @@
       <div class="whole" id="scenes"></div>
       <h2>Rooms <small>tap to select</small></h2>
       <div id="rooms"></div>
+      <h2 id="holiday-title" hidden>🎄 Holiday</h2>
+      <div class="scene-grid holiday" id="holiday"></div>
       <h2 id="scene-title">Scenes</h2>
       <div class="scene-grid" id="hue-scenes"></div>
     </section>
@@ -129,7 +133,8 @@ document.querySelectorAll("#tabs button").forEach((b) => (b.onclick = () => {
 // ----- lights -----
 const flash = (b) => { b.classList.add("flash"); setTimeout(() => b.classList.remove("flash"), 700); };
 async function loadScenes() {
-  const { builtIn, hue } = await api("/api/hue/scenes");
+  const { builtIn, hue, holiday } = await api("/api/hue/scenes");
+  holidayScenes = holiday || [];
   $("scenes").innerHTML = builtIn.map((x) => `<button class="scene" data-s="${x.id}"><span>${x.icon}</span>${esc(x.name)}</button>`).join("");
   wireScenes($("scenes"));
   // one button per scene name (Hue keeps a copy per room)
@@ -137,7 +142,7 @@ async function loadScenes() {
   hueScenes = hue.filter((x) => (seen.has(x.name) ? false : seen.add(x.name)));
   drawScenes();
 }
-let hueScenes = [], rooms = [], selRoom = null;
+let hueScenes = [], holidayScenes = [], rooms = [], selRoom = null;
 try { selRoom = localStorage.getItem("ave-room-id"); } catch {}
 function wireScenes(root) {
   root.querySelectorAll("[data-s]").forEach((b) => (b.onclick = async () => {
@@ -147,6 +152,10 @@ function wireScenes(root) {
 function drawScenes() {
   const room = rooms.find((r) => r.id === selRoom);
   $("scene-title").innerHTML = room ? `Scenes · <b>${esc(room.name)}</b>` : "Scenes";
+  $("holiday-title").hidden = !(room && holidayScenes.length);
+  if (room) $("holiday-title").innerHTML = `🎄 Holiday · <b>${esc(room.name)}</b>`;
+  $("holiday").innerHTML = room ? holidayScenes.map((x) => `<button data-s="holiday:${x.id}:${room.id}"><span>${x.icon}</span>${esc(x.name)}</button>`).join("") : "";
+  wireScenes($("holiday"));
   $("hue-scenes").innerHTML = room ? hueScenes.map((x) => `<button data-s="hue:${x.id}:${room.id}">${esc(x.name)}</button>`).join("") : "";
   wireScenes($("hue-scenes"));
 }
