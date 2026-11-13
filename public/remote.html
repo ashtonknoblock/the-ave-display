@@ -158,7 +158,7 @@ function selectRoom(id) {
 let busyUntil = 0;
 async function loadRooms() {
   if (Date.now() < busyUntil) return;
-  rooms = (await api("/api/hue/rooms")).filter((r) => r.type === "Room");
+  rooms = await api("/api/hue/rooms");
   if (!rooms.some((r) => r.id === selRoom) && rooms.length) selRoom = rooms[0].id;
   $("rooms").innerHTML = rooms.map((r) => `
     <div class="room ${r.on ? "on" : ""} ${r.id === selRoom ? "sel" : ""}" data-id="${r.id}">

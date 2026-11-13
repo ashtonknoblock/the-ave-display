@@ -432,7 +432,7 @@ try { pickedRoom = localStorage.getItem("ave-room-id"); } catch {}
 function renderRoomScenes() {
   const pick = document.getElementById("room-pick");
   const hs = document.getElementById("hue-scenes");
-  const rooms = roomList.filter((r) => r.type === "Room");
+  const rooms = roomList;
   if (!rooms.length || !hueSceneList.length) { pick.innerHTML = ""; hs.innerHTML = ""; return; }
   if (!rooms.some((r) => r.id === pickedRoom)) pickedRoom = rooms[0].id;
   pick.innerHTML = `<span class="pick-label">Scenes for</span>` + rooms.map((r) =>
