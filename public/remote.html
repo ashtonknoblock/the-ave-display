@@ -25,8 +25,16 @@
     .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
     .chips button { flex: 0 0 auto; border-radius: 999px; padding: 10px 14px; background: var(--panel2); font-size: 15px; white-space: nowrap; }
     .chips button.on { background: var(--gold); color: #0d1117; font-weight: 600; }
-    .scene-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
-    .scene-grid button { padding: 14px 10px; font-size: 15px; background: var(--panel2); }
+    .whole { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .whole .scene { padding: 12px 4px; font-size: 13px; }
+    .whole .scene span { font-size: 22px; margin-bottom: 2px; }
+    h2 small { text-transform: none; letter-spacing: 0; font-weight: 400; color: #5d6670; margin-left: 6px; }
+    h2 b { color: var(--gold); font-weight: 600; text-transform: none; letter-spacing: 0; }
+    .scene-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .scene-grid button { padding: 12px 6px; font-size: 14px; background: var(--panel2); line-height: 1.2; }
+    .room.sel { outline: 2.5px solid var(--gold); outline-offset: 2px; }
+    .room .sel-tag { display: none; font-size: 12px; color: var(--gold); font-weight: 600; margin-left: 8px; }
+    .room.sel .sel-tag { display: inline; }
     .room { background: var(--panel); border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; border: 1.5px solid transparent; }
     .room.on { border-color: rgba(255,196,92,.4); background: linear-gradient(160deg, rgba(255,196,92,.18), rgba(255,166,87,.05)); }
     .room-top { display: flex; justify-content: space-between; align-items: center; }
@@ -73,12 +81,11 @@
   <div id="app" hidden>
     <section class="view on" data-view="lights">
       <h1>Lights</h1>
-      <div class="grid" id="scenes"></div>
-      <h2>Scenes for</h2>
-      <div class="chips" id="room-pick"></div>
-      <div class="scene-grid" id="hue-scenes"></div>
-      <h2>Rooms</h2>
+      <div class="whole" id="scenes"></div>
+      <h2>Rooms <small>tap to select</small></h2>
       <div id="rooms"></div>
+      <h2 id="scene-title">Scenes</h2>
+      <div class="scene-grid" id="hue-scenes"></div>
     </section>
     <section class="view" data-view="timers">
       <h1>Timers</h1>
@@ -120,46 +127,49 @@ document.querySelectorAll("#tabs button").forEach((b) => (b.onclick = () => {
 }));
 
 // ----- lights -----
-let busyUntil = 0;
 const flash = (b) => { b.classList.add("flash"); setTimeout(() => b.classList.remove("flash"), 700); };
 async function loadScenes() {
   const { builtIn, hue } = await api("/api/hue/scenes");
   $("scenes").innerHTML = builtIn.map((x) => `<button class="scene" data-s="${x.id}"><span>${x.icon}</span>${esc(x.name)}</button>`).join("");
-  hueScenes = hue;
   wireScenes($("scenes"));
-  drawRoomScenes();
+  // one button per scene name (Hue keeps a copy per room)
+  const seen = new Set();
+  hueScenes = hue.filter((x) => (seen.has(x.name) ? false : seen.add(x.name)));
+  drawScenes();
 }
-let hueScenes = [], pickedRoom = null;
-try { pickedRoom = localStorage.getItem("ave-room"); } catch {}
+let hueScenes = [], rooms = [], selRoom = null;
+try { selRoom = localStorage.getItem("ave-room-id"); } catch {}
 function wireScenes(root) {
   root.querySelectorAll("[data-s]").forEach((b) => (b.onclick = async () => {
-    flash(b); await api(`/api/hue/scenes/${encodeURIComponent(b.dataset.s)}`, { method: "POST" }); setTimeout(loadRooms, 500);
+    flash(b); await api(`/api/hue/scenes/${encodeURIComponent(b.dataset.s)}`, { method: "POST" }); setTimeout(loadRooms, 600);
   }));
 }
-function drawRoomScenes() {
-  const rooms = [...new Set(hueScenes.map((x) => x.room))];
-  if (!rooms.includes(pickedRoom)) pickedRoom = rooms[0];
-  $("room-pick").innerHTML = rooms.map((r) => `<button class="${r === pickedRoom ? "on" : ""}" data-r="${esc(r)}">${esc(r)}</button>`).join("");
-  $("room-pick").querySelectorAll("[data-r]").forEach((b) => (b.onclick = () => {
-    pickedRoom = b.dataset.r; try { localStorage.setItem("ave-room", pickedRoom); } catch {}
-    drawRoomScenes();
-  }));
-  $("hue-scenes").innerHTML = hueScenes.filter((x) => x.room === pickedRoom)
-    .map((x) => `<button data-s="hue:${x.id}:${x.group}">${esc(x.name)}</button>`).join("");
+function drawScenes() {
+  const room = rooms.find((r) => r.id === selRoom);
+  $("scene-title").innerHTML = room ? `Scenes · <b>${esc(room.name)}</b>` : "Scenes";
+  $("hue-scenes").innerHTML = room ? hueScenes.map((x) => `<button data-s="hue:${x.id}:${room.id}">${esc(x.name)}</button>`).join("") : "";
   wireScenes($("hue-scenes"));
 }
+function selectRoom(id) {
+  selRoom = id; try { localStorage.setItem("ave-room-id", id); } catch {}
+  document.querySelectorAll(".room").forEach((el) => el.classList.toggle("sel", el.dataset.id === id));
+  drawScenes();
+}
+let busyUntil = 0;
 async function loadRooms() {
   if (Date.now() < busyUntil) return;
-  const rooms = await api("/api/hue/rooms");
+  rooms = (await api("/api/hue/rooms")).filter((r) => r.type === "Room");
+  if (!rooms.some((r) => r.id === selRoom) && rooms.length) selRoom = rooms[0].id;
   $("rooms").innerHTML = rooms.map((r) => `
-    <div class="room ${r.on ? "on" : ""}" data-id="${r.id}">
-      <div class="room-top"><div><div class="room-name">${esc(r.name)}</div>
+    <div class="room ${r.on ? "on" : ""} ${r.id === selRoom ? "sel" : ""}" data-id="${r.id}">
+      <div class="room-top"><div><div class="room-name">${esc(r.name)}<span class="sel-tag">SELECTED</span></div>
         <div class="room-state">${r.on ? `On · ${Math.max(1, Math.round(r.bri / 2.54))}%` : "Off"}</div></div>
         <button class="toggle" aria-label="Toggle ${esc(r.name)}"></button></div>
       <input type="range" min="1" max="254" value="${r.bri}" />
     </div>`).join("");
   document.querySelectorAll(".room").forEach((el) => {
     const id = el.dataset.id;
+    el.onclick = (e) => { if (!e.target.closest(".toggle, input")) selectRoom(id); };
     el.querySelector(".toggle").onclick = async () => {
       busyUntil = Date.now() + 2500;
       const on = !el.classList.contains("on");
@@ -170,6 +180,7 @@ async function loadRooms() {
     sl.oninput = () => { busyUntil = Date.now() + 2500; el.classList.add("on"); };
     sl.onchange = () => api(`/api/hue/rooms/${id}`, { method: "PUT", body: JSON.stringify({ bri: Number(sl.value) }) });
   });
+  drawScenes();
 }
 
 // ----- timers -----

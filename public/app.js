@@ -195,6 +195,9 @@ function pct(bri) {
 }
 
 function renderRooms(rooms) {
+  const changed = JSON.stringify(rooms.map((r) => r.id + r.name)) !== JSON.stringify(roomList.map((r) => r.id + r.name));
+  roomList = rooms;
+  if (changed) renderRoomScenes();
   if (!rooms.length) {
     lightsEl.innerHTML = `<div class="hue-connect">Connected to Hue, but no rooms are set up in the Hue app yet.</div>`;
     return;
@@ -423,26 +426,27 @@ document.getElementById("rotator").addEventListener("click", (e) => {
 // ===== Light scenes =====
 // Pick a room, then its Hue-app scenes show as buttons.
 let hueSceneList = [];
-let pickedRoom = null;
-try { pickedRoom = localStorage.getItem("ave-room"); } catch {}
+let roomList = [];
+let pickedRoom = null; // room id
+try { pickedRoom = localStorage.getItem("ave-room-id"); } catch {}
 function renderRoomScenes() {
-  const rooms = [...new Set(hueSceneList.map((x) => x.room))];
   const pick = document.getElementById("room-pick");
   const hs = document.getElementById("hue-scenes");
-  if (!rooms.length) { pick.innerHTML = ""; hs.innerHTML = ""; return; }
-  if (!rooms.includes(pickedRoom)) pickedRoom = rooms[0];
+  const rooms = roomList.filter((r) => r.type === "Room");
+  if (!rooms.length || !hueSceneList.length) { pick.innerHTML = ""; hs.innerHTML = ""; return; }
+  if (!rooms.some((r) => r.id === pickedRoom)) pickedRoom = rooms[0].id;
   pick.innerHTML = `<span class="pick-label">Scenes for</span>` + rooms.map((r) =>
-    `<button class="pick ${r === pickedRoom ? "on" : ""}" data-room="${esc(r)}">${esc(r)}</button>`).join("");
+    `<button class="pick ${r.id === pickedRoom ? "on" : ""}" data-room="${r.id}">${esc(r.name)}</button>`).join("");
   pick.querySelectorAll("[data-room]").forEach((b) => (b.onclick = () => {
     pickedRoom = b.dataset.room;
-    try { localStorage.setItem("ave-room", pickedRoom); } catch {}
+    try { localStorage.setItem("ave-room-id", pickedRoom); } catch {}
     renderRoomScenes();
   }));
-  hs.innerHTML = hueSceneList.filter((x) => x.room === pickedRoom).map((x) =>
-    `<button class="chip-btn" data-scene="hue:${x.id}:${x.group}">${esc(x.name)}</button>`).join("");
+  const seen = new Set();
+  hs.innerHTML = hueSceneList.filter((x) => (seen.has(x.name) ? false : seen.add(x.name))).map((x) =>
+    `<button class="chip-btn" data-scene="hue:${x.id}:${pickedRoom}">${esc(x.name)}</button>`).join("");
   hs.querySelectorAll("[data-scene]").forEach((b) => (b.onclick = () => runScene(b.dataset.scene, b)));
 }
-function flash(btn) { btn.classList.add("flash"); setTimeout(() => btn.classList.remove("flash"), 700); }
 async function runScene(id, btn) {
   flash(btn);
   lightsBusyUntil = 0;
