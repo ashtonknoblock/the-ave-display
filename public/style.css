@@ -4,7 +4,7 @@
   --panel: #161b22;
   --text: #e6edf3;
   --muted: #8b949e;
-  --accent: #58a6ff;
+  --accent: #ff7b72;
   --warm: #ffa657;
   --cool: #79c0ff;
 }
@@ -30,10 +30,6 @@ html, body {
   align-items: center;
 }
 
-/* Portrait fallback */
-@media (orientation: portrait) {
-  .layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-}
 
 .clock {
   font-size: 19vw;
@@ -43,7 +39,6 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 .clock .ampm { font-size: 0.25em; color: var(--muted); margin-left: 0.15em; letter-spacing: 0; }
-@media (orientation: portrait) { .clock { font-size: 28vw; } }
 
 .date {
   font-size: 3.2vw;
@@ -85,3 +80,34 @@ html, body {
   color: var(--muted);
   opacity: 0.6;
 }
+
+/* ===== Portrait (tablet standing up) ===== */
+@media (orientation: portrait) {
+  .layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    align-content: center;
+    gap: 5vh;
+    padding: 6vh 6vw 8vh;
+  }
+  .clock { font-size: 30vw; }
+  .date { font-size: 5.5vw; }
+  .weather-panel { padding: 3.5vh 5vw; }
+  .now { gap: 4vw; }
+  .now-icon { font-size: 18vw; }
+  .now-temp { font-size: 14vw; }
+  .now-desc { font-size: 4.4vw; }
+  .now-extra { font-size: 3.4vw; }
+  .forecast { gap: 1.5vw; }
+  .day { padding: 1.5vh 0; }
+  .day-name { font-size: 3.4vw; }
+  .day-icon { font-size: 7vw; }
+  .day-hi { font-size: 4.2vw; }
+  .day-lo { font-size: 3.6vw; }
+  .day-rain { font-size: 2.8vw; min-height: 2.8vw; }
+  .status { font-size: 2.4vw; }
+}
+
+/* ===== Night mode: dims everything so it's not a flashlight at 2am ===== */
+body { transition: filter 2s ease; }
+body.night { filter: brightness(0.35); }

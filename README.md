@@ -17,3 +17,4 @@ Then open the printed `http://<ip>:3000` address on the tablet. Saving any file 
 ## Notes
 - Weather: Open-Meteo (free, no key)
 - Secrets (Hue key etc.) go in `.env`, which is never committed
+- Plan lives in `BACKLOG.md`

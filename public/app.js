@@ -3,6 +3,7 @@ const CONFIG = {
   location: { name: "Columbus", lat: 39.96, lon: -83.0 },
   timezone: "America/New_York",
   weatherRefreshMinutes: 15,
+  night: { startHour: 22, endHour: 6 }, // dim between 10pm and 6am
   liveReload: true, // reload the page when files change on the server (handy while building)
 };
 
@@ -19,6 +20,10 @@ function updateClock() {
     month: "long",
     day: "numeric",
   });
+  const hr = now.getHours();
+  const { startHour, endHour } = CONFIG.night;
+  const isNight = startHour > endHour ? hr >= startHour || hr < endHour : hr >= startHour && hr < endHour;
+  document.body.classList.toggle("night", isNight);
 }
 
 // ===== Weather (Open-Meteo, free, no API key) =====
