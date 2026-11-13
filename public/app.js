@@ -246,6 +246,75 @@ async function updateLights() {
   }
 }
 
+// ===== Upcoming dates + Columbus events =====
+const esc = (t = "") => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function dayDiff(date) {
+  const a = new Date(); a.setHours(0, 0, 0, 0);
+  const b = new Date(date); b.setHours(0, 0, 0, 0);
+  return Math.round((b - a) / 86400000);
+}
+function whenLabel(ev) {
+  const d = new Date(ev.start);
+  const day = d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  return ev.allDay ? day : `${day} · ${d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).replace(":00", "")}`;
+}
+
+function renderDates(data) {
+  const el = document.getElementById("slide-dates");
+  if (!data.configured) { el.innerHTML = ""; return; }
+  const items = data.items.slice(0, 5);
+  el.innerHTML = `<div class="slide-title">Coming up <small>The Ave calendar</small></div>` + (items.length
+    ? `<div class="list">${items.map((ev) => {
+        const n = dayDiff(ev.start);
+        const chip = n <= 0 ? "<b>Today</b>" : n === 1 ? "<b>Tmrw</b>" : `in <b>${n}</b> days`;
+        return `<div class="item"><div class="chip ${n <= 3 ? "soon" : ""}">${chip}</div>
+          <div><div class="item-title">${esc(ev.title)}</div><div class="item-sub">${esc(whenLabel(ev))}${ev.location ? " · " + esc(ev.location) : ""}</div></div></div>`;
+      }).join("")}</div>`
+    : `<div class="empty">Nothing on the calendar for the next two months.</div>`);
+}
+
+function renderLocal(data) {
+  const el = document.getElementById("slide-local");
+  const items = data.items.slice(0, 5);
+  if (!items.length) { el.innerHTML = ""; return; }
+  el.innerHTML = `<div class="slide-title">Around Columbus <small>next 10 days</small></div>
+    <div class="list">${items.map((ev) => {
+      const d = new Date(ev.start);
+      const n = dayDiff(ev.start);
+      const top = n <= 0 ? "Today" : n === 1 ? "Tmrw" : d.toLocaleDateString("en-US", { weekday: "short" });
+      return `<div class="item"><div class="chip ${n <= 1 ? "soon" : ""}">${top}<b>${d.getMonth() + 1}/${d.getDate()}</b></div>
+        <div><div class="item-title">${esc(ev.title)}</div><div class="item-sub">${ev.allDay ? "" : esc(d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).replace(":00", "")) + " · "}${esc(ev.location || ev.source)}</div></div></div>`;
+    }).join("")}</div>`;
+}
+
+async function updateEvents() {
+  try {
+    const data = await api("/api/events");
+    renderDates(data.personal);
+    renderLocal(data.local);
+  } catch (err) {
+    console.error("Events failed:", err);
+  }
+}
+
+// ===== Rotator: cycles through slides that have content =====
+let slideIndex = 0;
+let slideTimer = null;
+function slides() {
+  return [...document.querySelectorAll("#rotator > .slide")].filter((s) => s.dataset.slide === "weather" || s.innerHTML.trim());
+}
+function showSlide(i) {
+  const list = slides();
+  slideIndex = (i + list.length) % list.length;
+  document.querySelectorAll("#rotator > .slide").forEach((s) => s.classList.toggle("active", s === list[slideIndex]));
+  document.getElementById("dots").innerHTML = list.length > 1 ? list.map((_, j) => `<span class="${j === slideIndex ? "on" : ""}"></span>`).join("") : "";
+  clearTimeout(slideTimer);
+  slideTimer = setTimeout(() => showSlide(slideIndex + 1), (Number(list[slideIndex].dataset.seconds) || 15) * 1000);
+}
+// tap the panel to jump to the next slide
+document.getElementById("rotator").addEventListener("click", () => showSlide(slideIndex + 1));
+
 // ===== Start =====
 updateClock();
 setInterval(updateClock, 1000);
@@ -255,5 +324,9 @@ setInterval(updateWeather, CONFIG.weatherRefreshMinutes * 60 * 1000);
 
 updateLights();
 setInterval(updateLights, 5000);
+
+updateEvents();
+setInterval(updateEvents, 10 * 60 * 1000);
+showSlide(0);
 
 if (CONFIG.liveReload) setInterval(checkForChanges, 2000);

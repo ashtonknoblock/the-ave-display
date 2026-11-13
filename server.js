@@ -1,4 +1,5 @@
 // The Ave Display — tiny local server (no npm installs needed)
+process.env.TZ = process.env.TZ || "America/New_York";
 // Run:  node server.js     then open http://<this-computer-ip>:3000 on the tablet
 
 const http = require("http");
@@ -7,6 +8,7 @@ const path = require("path");
 const os = require("os");
 const { execSync } = require("child_process");
 const hue = require("./lib/hue");
+const events = require("./lib/events");
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, "public");
@@ -67,6 +69,13 @@ const server = http.createServer((req, res) => {
   const url = new URL(req.url, "http://localhost");
 
   if (url.pathname.startsWith("/api/hue/")) return handleHue(req, res, url);
+
+  if (url.pathname === "/api/events") {
+    Promise.all([events.personal(), events.local()])
+      .then(([personal, local]) => sendJson(res, 200, { personal, local }))
+      .catch((err) => sendJson(res, 500, { error: err.message }));
+    return;
+  }
 
   if (url.pathname === "/__info") {
     let commit = "dev";

@@ -13,7 +13,8 @@
       <div id="date" class="date">&nbsp;</div>
     </section>
 
-    <section class="weather-panel">
+    <section class="rotator" id="rotator">
+    <div class="weather-panel slide active" data-slide="weather" data-seconds="25">
       <div class="now">
         <div id="now-icon" class="now-icon">·</div>
         <div>
@@ -23,6 +24,11 @@
         </div>
       </div>
       <div id="forecast" class="forecast"></div>
+    </div>
+
+    <div class="weather-panel slide" data-slide="dates" data-seconds="12" id="slide-dates"></div>
+    <div class="weather-panel slide" data-slide="local" data-seconds="15" id="slide-local"></div>
+    <div class="dots" id="dots"></div>
     </section>
 
     <section id="lights" class="lights-panel"></section>

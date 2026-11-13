@@ -28,6 +28,14 @@
 - [ ] Knobability widget
 - [ ] Ambient rotating view when idle
 
+## Calendar + events
+- [x] Rotating panel: weather / Coming up / Around Columbus
+- [x] The Ave Google Calendar via secret iCal link (yearly birthdays count down)
+- [x] Columbus feeds: Downtown Columbus, Columbus Commons, Rec & Parks, Metro Parks
+- [ ] Columbus Underground (check for a feed, otherwise read the page)
+- [ ] Experience Columbus / Eventbrite
+- [ ] Tune the event filter after a week of real use
+
 ## Phase 4 – Timers
 - [ ] Big tap-to-start timers (5/10/15) with alarm sound
 - [ ] Multiple timers

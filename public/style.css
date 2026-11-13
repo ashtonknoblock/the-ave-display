@@ -36,7 +36,7 @@ html, body {
   align-items: center;
 }
 .time-panel { grid-area: time; }
-.weather-panel { grid-area: weather; }
+.rotator { grid-area: weather; position: relative; display: grid; }
 .lights-panel { grid-area: lights; align-self: start; }
 
 
@@ -181,4 +181,49 @@ body.night { filter: brightness(0.35); }
   .tile input[type="range"] { height: 4vh; }
   .hue-connect { font-size: 3.4vw; padding: 2.5vh 5vw; }
   .hue-connect button { font-size: 3.6vw; }
+}
+
+/* ===== Rotating panel (weather / coming up / Columbus) ===== */
+.rotator > .slide {
+  grid-area: 1 / 1;            /* stack slides on top of each other */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.8s ease, visibility 0.8s;
+}
+.rotator > .slide.active { opacity: 1; visibility: visible; }
+.dots { position: absolute; bottom: -2.4vh; left: 0; right: 0; display: flex; justify-content: center; gap: 0.6vw; }
+.dots span { width: 0.6vw; height: 0.6vw; min-width: 6px; min-height: 6px; border-radius: 50%; background: var(--muted); opacity: 0.35; transition: opacity 0.4s; }
+.dots span.on { opacity: 0.9; }
+
+.slide-title { font-size: 2.1vw; font-weight: 500; margin-bottom: 1.6vh; display: flex; justify-content: space-between; align-items: baseline; }
+.slide-title small { font-size: 1.2vw; color: var(--muted); font-weight: 400; }
+.list { display: flex; flex-direction: column; gap: 1.2vh; }
+.item { display: grid; grid-template-columns: 8.5vw 1fr; gap: 1.2vw; align-items: center; }
+.chip {
+  text-align: center;
+  border-radius: 12px;
+  padding: 0.8vh 0.4vw;
+  background: rgba(88, 166, 255, 0.12);
+  color: var(--cool);
+  font-size: 1.25vw;
+  line-height: 1.25;
+}
+.chip b { display: block; font-size: 1.7vw; color: var(--text); font-weight: 500; }
+.chip.soon { background: rgba(255, 166, 87, 0.18); color: var(--warm); }
+.item-title { font-size: 1.6vw; line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.item-sub { font-size: 1.15vw; color: var(--muted); margin-top: 0.3vh; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.empty { color: var(--muted); font-size: 1.5vw; line-height: 1.4; }
+
+@media (orientation: portrait) {
+  .dots { bottom: -2vh; gap: 1.4vw; }
+  .dots span { width: 1.4vw; height: 1.4vw; }
+  .slide-title { font-size: 4.6vw; margin-bottom: 1.4vh; }
+  .slide-title small { font-size: 2.6vw; }
+  .list { gap: 1.1vh; }
+  .item { grid-template-columns: 17vw 1fr; gap: 3vw; }
+  .chip { font-size: 2.6vw; border-radius: 14px; }
+  .chip b { font-size: 3.6vw; }
+  .item-title { font-size: 3.5vw; }
+  .item-sub { font-size: 2.6vw; }
+  .empty { font-size: 3.3vw; }
 }
