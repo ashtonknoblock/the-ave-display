@@ -24,7 +24,9 @@
     .flash { background: rgba(255,196,92,.35) !important; }
     .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
     .chips button { flex: 0 0 auto; border-radius: 999px; padding: 10px 14px; background: var(--panel2); font-size: 15px; white-space: nowrap; }
-    .chips small { color: var(--muted); margin-left: 6px; }
+    .chips button.on { background: var(--gold); color: #0d1117; font-weight: 600; }
+    .scene-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+    .scene-grid button { padding: 14px 10px; font-size: 15px; background: var(--panel2); }
     .room { background: var(--panel); border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; border: 1.5px solid transparent; }
     .room.on { border-color: rgba(255,196,92,.4); background: linear-gradient(160deg, rgba(255,196,92,.18), rgba(255,166,87,.05)); }
     .room-top { display: flex; justify-content: space-between; align-items: center; }
@@ -72,7 +74,9 @@
     <section class="view on" data-view="lights">
       <h1>Lights</h1>
       <div class="grid" id="scenes"></div>
-      <div class="chips" id="hue-scenes" style="margin-top:10px"></div>
+      <h2>Scenes for</h2>
+      <div class="chips" id="room-pick"></div>
+      <div class="scene-grid" id="hue-scenes"></div>
       <h2>Rooms</h2>
       <div id="rooms"></div>
     </section>
@@ -121,10 +125,28 @@ const flash = (b) => { b.classList.add("flash"); setTimeout(() => b.classList.re
 async function loadScenes() {
   const { builtIn, hue } = await api("/api/hue/scenes");
   $("scenes").innerHTML = builtIn.map((x) => `<button class="scene" data-s="${x.id}"><span>${x.icon}</span>${esc(x.name)}</button>`).join("");
-  $("hue-scenes").innerHTML = hue.map((x) => `<button data-s="hue:${x.id}:${x.group}">${esc(x.name)}<small>${esc(x.room)}</small></button>`).join("");
-  document.querySelectorAll("[data-s]").forEach((b) => (b.onclick = async () => {
+  hueScenes = hue;
+  wireScenes($("scenes"));
+  drawRoomScenes();
+}
+let hueScenes = [], pickedRoom = null;
+try { pickedRoom = localStorage.getItem("ave-room"); } catch {}
+function wireScenes(root) {
+  root.querySelectorAll("[data-s]").forEach((b) => (b.onclick = async () => {
     flash(b); await api(`/api/hue/scenes/${encodeURIComponent(b.dataset.s)}`, { method: "POST" }); setTimeout(loadRooms, 500);
   }));
+}
+function drawRoomScenes() {
+  const rooms = [...new Set(hueScenes.map((x) => x.room))];
+  if (!rooms.includes(pickedRoom)) pickedRoom = rooms[0];
+  $("room-pick").innerHTML = rooms.map((r) => `<button class="${r === pickedRoom ? "on" : ""}" data-r="${esc(r)}">${esc(r)}</button>`).join("");
+  $("room-pick").querySelectorAll("[data-r]").forEach((b) => (b.onclick = () => {
+    pickedRoom = b.dataset.r; try { localStorage.setItem("ave-room", pickedRoom); } catch {}
+    drawRoomScenes();
+  }));
+  $("hue-scenes").innerHTML = hueScenes.filter((x) => x.room === pickedRoom)
+    .map((x) => `<button data-s="hue:${x.id}:${x.group}">${esc(x.name)}</button>`).join("");
+  wireScenes($("hue-scenes"));
 }
 async function loadRooms() {
   if (Date.now() < busyUntil) return;

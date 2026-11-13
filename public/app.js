@@ -421,6 +421,27 @@ document.getElementById("rotator").addEventListener("click", (e) => {
 });
 
 // ===== Light scenes =====
+// Pick a room, then its Hue-app scenes show as buttons.
+let hueSceneList = [];
+let pickedRoom = null;
+try { pickedRoom = localStorage.getItem("ave-room"); } catch {}
+function renderRoomScenes() {
+  const rooms = [...new Set(hueSceneList.map((x) => x.room))];
+  const pick = document.getElementById("room-pick");
+  const hs = document.getElementById("hue-scenes");
+  if (!rooms.length) { pick.innerHTML = ""; hs.innerHTML = ""; return; }
+  if (!rooms.includes(pickedRoom)) pickedRoom = rooms[0];
+  pick.innerHTML = `<span class="pick-label">Scenes for</span>` + rooms.map((r) =>
+    `<button class="pick ${r === pickedRoom ? "on" : ""}" data-room="${esc(r)}">${esc(r)}</button>`).join("");
+  pick.querySelectorAll("[data-room]").forEach((b) => (b.onclick = () => {
+    pickedRoom = b.dataset.room;
+    try { localStorage.setItem("ave-room", pickedRoom); } catch {}
+    renderRoomScenes();
+  }));
+  hs.innerHTML = hueSceneList.filter((x) => x.room === pickedRoom).map((x) =>
+    `<button class="chip-btn" data-scene="hue:${x.id}:${x.group}">${esc(x.name)}</button>`).join("");
+  hs.querySelectorAll("[data-scene]").forEach((b) => (b.onclick = () => runScene(b.dataset.scene, b)));
+}
 function flash(btn) { btn.classList.add("flash"); setTimeout(() => btn.classList.remove("flash"), 700); }
 async function runScene(id, btn) {
   flash(btn);
@@ -433,9 +454,9 @@ async function updateScenes() {
     const { builtIn, hue } = await api("/api/hue/scenes");
     const sc = document.getElementById("scenes");
     sc.innerHTML = builtIn.map((x) => `<button class="scene" data-scene="${x.id}"><span>${x.icon}</span>${esc(x.name)}</button>`).join("");
-    const hs = document.getElementById("hue-scenes");
-    hs.innerHTML = hue.map((x) => `<button class="chip-btn" data-scene="hue:${x.id}:${x.group}">${esc(x.name)}<small>${esc(x.room)}</small></button>`).join("");
-    document.querySelectorAll("[data-scene]").forEach((b) => (b.onclick = () => runScene(b.dataset.scene, b)));
+    hueSceneList = hue;
+    sc.querySelectorAll("[data-scene]").forEach((b) => (b.onclick = () => runScene(b.dataset.scene, b)));
+    renderRoomScenes();
   } catch {
     document.getElementById("scenes").innerHTML = "";
   }

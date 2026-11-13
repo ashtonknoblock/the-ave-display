@@ -212,7 +212,11 @@ html, body {
 .scene span { font-size: 2.4vw; }
 .scene:active, .chip-btn:active, .preset:active, .adj:active, .go:active { transform: scale(0.96); }
 .scene.flash { background: rgba(255, 196, 92, 0.35); }
-.hue-scenes { display: flex; gap: 0.8vw; overflow-x: auto; scrollbar-width: none; }
+.room-pick { display: flex; align-items: center; gap: 0.6vw; flex-wrap: wrap; }
+.pick-label { font-size: 1.2vw; color: var(--muted); margin-right: 0.4vw; }
+.pick { font: inherit; font-size: 1.3vw; color: var(--muted); background: transparent; border: 1.5px solid #2a3340; border-radius: 999px; padding: 0.9vh 1.4vw; touch-action: manipulation; }
+.pick.on { color: #0d1117; background: var(--gold); border-color: var(--gold); font-weight: 500; }
+.hue-scenes { display: flex; gap: 0.8vw; flex-wrap: wrap; max-height: 16vh; overflow-y: auto; scrollbar-width: none; }
 .hue-scenes::-webkit-scrollbar { display: none; }
 .chip-btn {
   font: inherit; flex: 0 0 auto; color: var(--text); background: var(--panel-2); border: 0; border-radius: 999px;
@@ -302,7 +306,8 @@ body.mode-night .mini-wx, body.mode-night .status { opacity: 0; transition: opac
 .no-flexgap .timer-pill + .timer-pill { margin-left: 0.6vw; }
 .no-flexgap .t-btns > * + * { margin-left: 0.6vw; }
 .no-flexgap .dots span + span { margin-left: 0.5vw; }
-.no-flexgap .hue-scenes > * + * { margin-left: 0.8vw; }
+.no-flexgap .hue-scenes > * { margin: 0 0.8vw 0.8vh 0; }
+.no-flexgap .room-pick > * { margin-right: 0.6vw; }
 .no-flexgap .hue-connect > * + * { margin-left: 1.5vw; }
 
 /* =================== Portrait fallback =================== */
