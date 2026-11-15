@@ -714,9 +714,9 @@ async function showRecipe(id) {
   document.getElementById("rec-title").textContent = r.title;
   document.getElementById("rec-meta").textContent = [r.time, r.servings].filter(Boolean).join(" · ");
   document.getElementById("rec-ing").innerHTML = (r.ingredients.map((x) => /:$/.test(x) ? `<li class="sub">${esc(x)}</li>` : `<li>${esc(x)}</li>`).join("") || "<li>—</li>")
-    + (r.notes ? `<li class="note">${esc(r.notes)}</li>` : "");
+    + (r.notes ? `<li class="rec-note">${esc(r.notes)}</li>` : "");
   document.getElementById("rec-steps").innerHTML = r.steps.map((x) => `<li>${esc(x)}</li>`).join("");
-  document.querySelectorAll("#rec-ing li").forEach((li) => (li.onclick = () => li.classList.toggle("got")));
+  document.querySelectorAll("#rec-ing li:not(.sub):not(.rec-note)").forEach((li) => (li.onclick = () => li.classList.toggle("got")));
   const steps = [...document.querySelectorAll("#rec-steps li")];
   steps.forEach((li, i) => (li.onclick = () => steps.forEach((x, j) => { x.classList.toggle("here", j === i); x.classList.toggle("done", j < i); })));
   document.getElementById("rec-list").hidden = true;
