@@ -713,7 +713,8 @@ async function showRecipe(id) {
   openRecipe = r.id; recipeOpenedAt = Date.now();
   document.getElementById("rec-title").textContent = r.title;
   document.getElementById("rec-meta").textContent = [r.time, r.servings].filter(Boolean).join(" · ");
-  document.getElementById("rec-ing").innerHTML = r.ingredients.map((x) => `<li>${esc(x)}</li>`).join("") || "<li>—</li>";
+  document.getElementById("rec-ing").innerHTML = (r.ingredients.map((x) => /:$/.test(x) ? `<li class="sub">${esc(x)}</li>` : `<li>${esc(x)}</li>`).join("") || "<li>—</li>")
+    + (r.notes ? `<li class="note">${esc(r.notes)}</li>` : "");
   document.getElementById("rec-steps").innerHTML = r.steps.map((x) => `<li>${esc(x)}</li>`).join("");
   document.querySelectorAll("#rec-ing li").forEach((li) => (li.onclick = () => li.classList.toggle("got")));
   const steps = [...document.querySelectorAll("#rec-steps li")];

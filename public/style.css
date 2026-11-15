@@ -295,6 +295,8 @@ body.mode-note { filter: none; }
 .rec-col { background: var(--panel); border-radius: 22px; padding: 2.4vh 1.8vw; overflow-y: auto; min-height: 0; }
 .rec-ing { list-style: none; margin: 0; padding: 0; font-size: 1.75vw; line-height: 1.35; }
 .rec-ing li { padding: 0.9vh 0; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+.rec-ing li.sub { color: var(--gold); font-size: 1.4vw; padding-top: 1.6vh; border: 0; }
+.rec-ing li.note { color: var(--muted); font-size: 1.3vw; border: 0; padding-top: 2vh; }
 .rec-ing li.got { opacity: 0.35; text-decoration: line-through; }
 .rec-steps { margin: 0; padding-left: 2.4vw; font-size: 1.85vw; line-height: 1.4; }
 .rec-steps li { padding: 1.1vh 0.8vw; border-radius: 12px; margin-bottom: 0.6vh; }
