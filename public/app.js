@@ -614,7 +614,7 @@ function ring(on) {
 }
 
 // ===== Pages: dock, swipe, auto-return home =====
-const PAGES = ["home", "lights", "timers", "calendar", "recipes"];
+const PAGES = ["home", "lights", "timers", "calendar", "tv", "recipes"];
 let currentPage = "home";
 let lastTouch = Date.now();
 function go(name) {
@@ -631,6 +631,7 @@ function go(name) {
   if (name === "lights") { updateLights(); updateScenes(); }
   if (name === "timers") loadTimers();
   if (name === "recipes" && !openRecipe) loadRecipes();
+  if (name === "tv") loadTvs();
 }
 document.querySelectorAll(".dock button").forEach((b) => (b.onclick = () => go(b.dataset.go)));
 document.querySelector('.dock button[data-go="home"]').classList.add("on");
@@ -694,6 +695,42 @@ if (hasFully) {
   try { fully.bind("onMotion", "onFullyMotion();"); } catch {}
 }
 setInterval(applyDisplayMode, 5000);
+
+
+// ===== TVs =====
+const TV_APPS = [["netflix", "Netflix"], ["youtube", "YouTube"], ["hulu", "Hulu"], ["disney", "Disney+"], ["prime", "Prime"], ["appletv", "Apple TV"]];
+function tvCard(t) {
+  const b = (action, label, arg = "", cls = "") => `<button class="tvb ${cls}" data-tv="${t.id}" data-act="${action}" data-arg="${arg}">${label}</button>`;
+  let body;
+  if (t.id === "lg" && !t.paired) body = `<div class="tv-hint">One-time setup: tap Pair, then press <b>Allow</b> on the TV.</div>${b("pair", "Pair with TV", "", "wide")}`;
+  else if (t.id === "roku" && !t.found) body = `<div class="tv-hint">Can't find it on Wi-Fi yet. Make sure it's on and "Control by mobile apps" is allowed in its settings.</div>${b("on", "Try again", "", "wide")}`;
+  else body = `<div class="tv-row">${b("on", "⏻ On")}${b("off", "Off")}<span class="tv-gap"></span>${b("voldown", "−")}${b("mute", "🔇")}${b("volup", "+")}</div>
+    <div class="tv-row">${TV_APPS.map(([id, n]) => b("app", n, id)).join("")}</div>
+    <div class="tv-row">${[1, 2, 3].map((n) => b("input", `HDMI ${n}`, `HDMI_${n}`)).join("")}</div>`;
+  return `<div class="tv-card"><div class="tv-head"><b>${esc(t.name)}</b><span class="tv-dot ${t.on ? "on" : ""}">${t.on ? "On" : "Off"}</span></div>${body}<div class="tv-msg" id="tvmsg-${t.id}"></div></div>`;
+}
+let tvBusy = false;
+async function loadTvs() {
+  if (tvBusy) return;
+  const el = document.getElementById("tv-list"); if (!el) return;
+  let list; try { list = await api("/api/tv"); } catch { el.innerHTML = `<div class="tv-hint">Couldn't reach the TVs.</div>`; return; }
+  el.innerHTML = list.map(tvCard).join("");
+  el.querySelectorAll("[data-act]").forEach((btn) => (btn.onclick = () => tvPress(btn)));
+}
+async function tvPress(btn) {
+  const { tv, act, arg } = btn.dataset, msg = document.getElementById(`tvmsg-${tv}`);
+  btn.classList.add("flash"); setTimeout(() => btn.classList.remove("flash"), 400);
+  if (act === "pair") msg.textContent = "Look at the TV and press Allow…";
+  tvBusy = true;
+  try {
+    const r = await fetch(`/api/tv/${tv}/${act}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ arg }) });
+    const j = await r.json().catch(() => ({}));
+    msg.textContent = r.ok ? (act === "on" && tv === "lg" ? "Turning on… give it a few seconds" : "") : (j.error || "Didn't work");
+  } catch { msg.textContent = "Didn't work"; }
+  tvBusy = false;
+  setTimeout(loadTvs, act === "on" || act === "off" || act === "pair" ? 4000 : 1500);
+}
+setInterval(() => currentPage === "tv" && loadTvs(), 15000);
 
 // ===== Recipes =====
 let openRecipe = null, recipeOpenedAt = 0;

@@ -44,6 +44,22 @@ Navigation: Home stays glanceable; bottom dock + swipe for other pages; auto-ret
 - [ ] Sprint 4: sports strip + Knobability, morning brief, drive time to OSU Wexner
 - [ ] Sprint 5: voice test (tap-to-talk), sunset / bedtime / wake-up light automations
 
+## Groceries → Walmart cart (idea, Nov 15)
+- [ ] Shared grocery list on tablet + phone remote (add, check off, clear)
+- [ ] "Add ingredients to list" button on each recipe
+- [ ] "Send to Walmart" button on the remote: copies a ready-made "fill my cart with…" message
+- [ ] Scheduled task on the Dell (Claude desktop): read the list from the tablet over Wi-Fi, open Walmart in Chrome (already signed in), fill the cart, stop before checkout, notify with what was added / not found
+  - Start it on a schedule (day/time TBD), on demand via Run in the Claude app, or both
+  - Needs: Dell awake, Claude desktop + Chrome open. Stops if Walmart shows a bot check. Never checks out.
+- [ ] Quick add to Google Calendar from the remote (Apps Script setup on The Ave account)
+- [ ] Nightly backup of data/ (recipes, timers, note) so a tablet reset doesn't lose them
+
+## TV control (idea, Nov 15)
+- [ ] Living room LG (webOS): on/off, volume, inputs, launch apps over Wi-Fi. One-time pairing (accept prompt on the TV). Power-on needs "Turn on via Wi-Fi" / "Mobile TV On" enabled.
+- [ ] Bedroom TCL Roku TV: on/off, volume, inputs, launch apps via Roku's local control. Power-on needs "Fast TV start" enabled.
+- [ ] TV buttons on the Lights page + phone remote; reserve both TVs' IPs on the router
+- [ ] Tie into scenes (e.g. Movie = dim living room + LG on, Bedtime = bedroom TV off)
+
 ## Phase 4 – Timers (old notes)
 - [ ] Big tap-to-start timers (5/10/15) with alarm sound
 - [ ] Multiple timers

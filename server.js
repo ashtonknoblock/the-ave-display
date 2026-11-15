@@ -12,6 +12,7 @@ const events = require("./lib/events");
 const timers = require("./lib/timers");
 const note = require("./lib/note");
 const recipes = require("./lib/recipes");
+const tv = require("./lib/tv");
 const { env, saveEnv } = require("./lib/env");
 
 // Phones on the Wi-Fi need a PIN; the tablet itself (localhost) doesn't.
@@ -114,6 +115,16 @@ const server = http.createServer((req, res) => {
   if (url.pathname.startsWith("/api/") && !authed(req)) return sendJson(res, 401, { error: "PIN required" });
 
   if (url.pathname.startsWith("/api/hue/")) return handleHue(req, res, url);
+
+  if (url.pathname.startsWith("/api/tv")) {
+    (async () => {
+      const m = url.pathname.match(/^\/api\/tv\/(\w+)\/(\w+)$/);
+      if (url.pathname === "/api/tv" && req.method === "GET") return sendJson(res, 200, await tv.list());
+      if (m && req.method === "POST") return sendJson(res, 200, (await tv.act(m[1], m[2], (await readBody(req)).arg)) || { ok: true });
+      sendJson(res, 404, { error: "Not found" });
+    })().catch((err) => sendJson(res, err.code || 500, { error: err.message }));
+    return;
+  }
 
   if (url.pathname.startsWith("/api/recipes")) {
     (async () => {
