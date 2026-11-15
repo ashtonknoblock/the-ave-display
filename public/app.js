@@ -698,7 +698,7 @@ setInterval(applyDisplayMode, 5000);
 
 
 // ===== TVs =====
-const TV_APPS = [["netflix", "Netflix"], ["youtube", "YouTube"], ["hulu", "Hulu"], ["disney", "Disney+"], ["prime", "Prime"], ["appletv", "Apple TV"]];
+const TV_APPS = [["netflix", "Netflix"], ["youtube", "YouTube"], ["youtubetv", "YouTube TV"], ["hulu", "Hulu"], ["disney", "Disney+"], ["prime", "Prime"], ["appletv", "Apple TV"]];
 function tvCard(t) {
   const b = (action, label, arg = "", cls = "") => `<button class="tvb ${cls}" data-tv="${t.id}" data-act="${action}" data-arg="${arg}">${label}</button>`;
   let body;
