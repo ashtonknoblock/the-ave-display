@@ -94,6 +94,11 @@
 .tvb { font: inherit; border: 0; border-radius: 12px; padding: 10px 14px; background: #2a3340; color: var(--text); }
 .tvb.wide { width: 100%; margin-top: 8px; background: var(--gold); color: #0d1117; font-weight: 600; }
 .tvb.flash { background: rgba(255,196,92,.4); }
+.tv-dpad .tvb { font-size: 18px; }
+.tv-dpad { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-areas: ". up back" "left ok right" "home down ."; gap: 8px; margin-top: 10px; }
+.tv-dpad .up { grid-area: up; } .tv-dpad .left { grid-area: left; } .tv-dpad .ok { grid-area: ok; background: #3a4656; font-weight: 600; }
+.tv-dpad .right { grid-area: right; } .tv-dpad .down { grid-area: down; } .tv-dpad .back { grid-area: back; font-size: .85em; } .tv-dpad .home { grid-area: home; font-size: .85em; }
+.tv-dpad .tvb { padding: 14px 0; }
 .tv-hint { color: var(--muted); font-size: .9em; } .tv-msg { color: #ffb38a; font-size: .85em; min-height: 1em; margin-top: 6px; }
   </style>
 </head>
@@ -330,7 +335,9 @@ function tvCard(t) {
   else if (t.id === "roku" && !t.found) body = `<div class="tv-hint">Can't find it on Wi-Fi yet. Make sure it's on and "Control by mobile apps" is allowed in its settings.</div>${b("on", "Try again", "", "wide")}`;
   else body = `<div class="tv-row">${b("on", "⏻ On")}${b("off", "Off")}<span class="tv-gap"></span>${b("voldown", "−")}${b("mute", "🔇")}${b("volup", "+")}</div>
     <div class="tv-row">${TV_APPS.map(([id, n]) => b("app", n, id)).join("")}</div>
-    <div class="tv-row">${[1, 2, 3].map((n) => b("input", `HDMI ${n}`, `HDMI_${n}`)).join("")}</div>`;
+    <div class="tv-row">${[1, 2, 3].map((n) => b("input", `HDMI ${n}`, `HDMI_${n}`)).join("")}</div>
+    <div class="tv-dpad">${b("key", "▲", "up", "up")}${b("key", "◀", "left", "left")}${b("key", "OK", "ok", "ok")}${b("key", "▶", "right", "right")}${b("key", "▼", "down", "down")}
+      ${b("key", "↩ Back", "back", "back")}${b("key", "⌂ Home", "home", "home")}</div>`;
   return `<div class="tv-card"><div class="tv-head"><b>${esc(t.name)}</b><span class="tv-dot ${t.on ? "on" : ""}">${t.on ? "On" : "Off"}</span></div>${body}<div class="tv-msg" id="tvmsg-${t.id}"></div></div>`;
 }
 let tvBusy = false;
@@ -352,7 +359,7 @@ async function tvPress(btn) {
     msg.textContent = r.ok ? (act === "on" && tv === "lg" ? "Turning on… give it a few seconds" : "") : (j.error || "Didn't work");
   } catch { msg.textContent = "Didn't work"; }
   tvBusy = false;
-  setTimeout(loadTvs, act === "on" || act === "off" || act === "pair" ? 4000 : 1500);
+  if (act !== "key") setTimeout(loadTvs, act === "on" || act === "off" || act === "pair" ? 4000 : 1500);
 }
 
 // ----- recipes -----

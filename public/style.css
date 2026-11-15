@@ -284,7 +284,7 @@ body.mode-note { filter: none; }
 
 
 /* TVs */
-.tv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.6vw; align-content: start; }
+.tv-grid { overflow-y: auto; flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 1.6vw; align-content: start; }
 .tv-grid .tv-card { font-size: 1.6vw; background: var(--panel); border-radius: 18px; padding: 14px 16px; margin-bottom: 12px; }
 .tv-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .tv-dot { font-size: .8em; color: var(--muted); } .tv-dot.on { color: #7ee2a8; }
@@ -293,6 +293,10 @@ body.mode-note { filter: none; }
 .tvb { font: inherit; border: 0; border-radius: 12px; padding: 10px 14px; background: #2a3340; color: var(--text); }
 .tvb.wide { width: 100%; margin-top: 8px; background: var(--gold); color: #0d1117; font-weight: 600; }
 .tvb.flash { background: rgba(255,196,92,.4); }
+.tv-dpad { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-areas: ". up back" "left ok right" "home down ."; gap: 8px; margin-top: 10px; }
+.tv-dpad .up { grid-area: up; } .tv-dpad .left { grid-area: left; } .tv-dpad .ok { grid-area: ok; background: #3a4656; font-weight: 600; }
+.tv-dpad .right { grid-area: right; } .tv-dpad .down { grid-area: down; } .tv-dpad .back { grid-area: back; font-size: .85em; } .tv-dpad .home { grid-area: home; font-size: .85em; }
+.tv-dpad .tvb { padding: 14px 0; }
 .tv-hint { color: var(--muted); font-size: .9em; } .tv-msg { color: #ffb38a; font-size: .85em; min-height: 1em; margin-top: 6px; }
 
 /* Recipes page */

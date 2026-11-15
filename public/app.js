@@ -706,7 +706,9 @@ function tvCard(t) {
   else if (t.id === "roku" && !t.found) body = `<div class="tv-hint">Can't find it on Wi-Fi yet. Make sure it's on and "Control by mobile apps" is allowed in its settings.</div>${b("on", "Try again", "", "wide")}`;
   else body = `<div class="tv-row">${b("on", "⏻ On")}${b("off", "Off")}<span class="tv-gap"></span>${b("voldown", "−")}${b("mute", "🔇")}${b("volup", "+")}</div>
     <div class="tv-row">${TV_APPS.map(([id, n]) => b("app", n, id)).join("")}</div>
-    <div class="tv-row">${[1, 2, 3].map((n) => b("input", `HDMI ${n}`, `HDMI_${n}`)).join("")}</div>`;
+    <div class="tv-row">${[1, 2, 3].map((n) => b("input", `HDMI ${n}`, `HDMI_${n}`)).join("")}</div>
+    <div class="tv-dpad">${b("key", "▲", "up", "up")}${b("key", "◀", "left", "left")}${b("key", "OK", "ok", "ok")}${b("key", "▶", "right", "right")}${b("key", "▼", "down", "down")}
+      ${b("key", "↩ Back", "back", "back")}${b("key", "⌂ Home", "home", "home")}</div>`;
   return `<div class="tv-card"><div class="tv-head"><b>${esc(t.name)}</b><span class="tv-dot ${t.on ? "on" : ""}">${t.on ? "On" : "Off"}</span></div>${body}<div class="tv-msg" id="tvmsg-${t.id}"></div></div>`;
 }
 let tvBusy = false;
@@ -728,7 +730,7 @@ async function tvPress(btn) {
     msg.textContent = r.ok ? (act === "on" && tv === "lg" ? "Turning on… give it a few seconds" : "") : (j.error || "Didn't work");
   } catch { msg.textContent = "Didn't work"; }
   tvBusy = false;
-  setTimeout(loadTvs, act === "on" || act === "off" || act === "pair" ? 4000 : 1500);
+  if (act !== "key") setTimeout(loadTvs, act === "on" || act === "off" || act === "pair" ? 4000 : 1500);
 }
 setInterval(() => currentPage === "tv" && loadTvs(), 15000);
 
