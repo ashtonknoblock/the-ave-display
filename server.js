@@ -11,6 +11,7 @@ const hue = require("./lib/hue");
 const events = require("./lib/events");
 const timers = require("./lib/timers");
 const note = require("./lib/note");
+const recipes = require("./lib/recipes");
 const { env, saveEnv } = require("./lib/env");
 
 // Phones on the Wi-Fi need a PIN; the tablet itself (localhost) doesn't.
@@ -113,6 +114,21 @@ const server = http.createServer((req, res) => {
   if (url.pathname.startsWith("/api/") && !authed(req)) return sendJson(res, 401, { error: "PIN required" });
 
   if (url.pathname.startsWith("/api/hue/")) return handleHue(req, res, url);
+
+  if (url.pathname.startsWith("/api/recipes")) {
+    (async () => {
+      const p = url.pathname, m = p.match(/^\/api\/recipes\/([\w-]+)$/);
+      if (p === "/api/recipes" && req.method === "GET") return sendJson(res, 200, recipes.list());
+      if (p === "/api/recipes" && req.method === "POST") return sendJson(res, 200, recipes.add(await readBody(req)));
+      if (p === "/api/recipes/import" && req.method === "POST") return sendJson(res, 200, await recipes.importUrl((await readBody(req)).url));
+      if (p === "/api/recipes/show" && req.method === "GET") return sendJson(res, 200, { showing: recipes.getShowing() });
+      if (p === "/api/recipes/show" && req.method === "POST") return sendJson(res, 200, recipes.show((await readBody(req)).id));
+      if (m && req.method === "GET") { const r = recipes.get(m[1]); return r ? sendJson(res, 200, r) : sendJson(res, 404, { error: "Not found" }); }
+      if (m && req.method === "DELETE") return sendJson(res, 200, recipes.remove(m[1]));
+      sendJson(res, 404, { error: "Not found" });
+    })().catch((err) => sendJson(res, err.code || 500, { error: err.message }));
+    return;
+  }
 
   if (url.pathname === "/api/note") {
     (async () => {

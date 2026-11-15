@@ -282,6 +282,25 @@ body.mode-note { filter: none; }
 .cal-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2vw; flex: 1; min-height: 0; }
 .cal-col { background: var(--panel); border-radius: 22px; padding: 2.4vh 1.8vw; display: flex; flex-direction: column; min-height: 0; }
 
+/* Recipes page */
+.rec-head { display: flex; align-items: center; justify-content: space-between; }
+.rec-back { font: inherit; font-size: 1.6vw; border: 0; border-radius: 14px; padding: 1vh 1.6vw; background: var(--panel); color: var(--text); }
+.rec-back[hidden], .rec-view[hidden], .rec-grid[hidden] { display: none; }
+.rec-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.4vw; overflow-y: auto; align-content: start; flex: 1; min-height: 0; }
+.rec-card { background: var(--panel); border-radius: 18px; padding: 2.4vh 1.6vw; font: inherit; color: var(--text); border: 0; text-align: left; }
+.rec-card b { display: block; font-size: 1.8vw; font-weight: 500; }
+.rec-card small { display: block; color: var(--muted); font-size: 1.2vw; margin-top: 0.8vh; }
+.rec-empty { color: var(--muted); font-size: 1.6vw; grid-column: 1 / -1; padding: 4vh 0; }
+.rec-view { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); gap: 2vw; flex: 1; min-height: 0; }
+.rec-col { background: var(--panel); border-radius: 22px; padding: 2.4vh 1.8vw; overflow-y: auto; min-height: 0; }
+.rec-ing { list-style: none; margin: 0; padding: 0; font-size: 1.75vw; line-height: 1.35; }
+.rec-ing li { padding: 0.9vh 0; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+.rec-ing li.got { opacity: 0.35; text-decoration: line-through; }
+.rec-steps { margin: 0; padding-left: 2.4vw; font-size: 1.85vw; line-height: 1.4; }
+.rec-steps li { padding: 1.1vh 0.8vw; border-radius: 12px; margin-bottom: 0.6vh; }
+.rec-steps li.here { background: rgba(255, 196, 92, 0.18); box-shadow: inset 0 0 0 1px #ffc45c; }
+.rec-steps li.done { opacity: 0.4; }
+
 /* ---------- Footer ---------- */
 .status { position: fixed; bottom: 1vh; right: 1.6vw; font-size: 1vw; color: var(--muted); opacity: 0.55; }
 

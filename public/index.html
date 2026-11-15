@@ -76,6 +76,14 @@
         <div class="cal-col"><div class="slide-title">Around Columbus <small>next 10 days</small></div><div class="list" id="cal-local"></div></div>
       </div>
     </section>
+    <section class="page subpage" data-page="recipes">
+      <div class="page-head rec-head"><h1 id="rec-title">Recipes</h1><button class="rec-back" id="rec-back" hidden>‹ All recipes</button></div>
+      <div class="rec-grid" id="rec-list"></div>
+      <div class="rec-view" id="rec-view" hidden>
+        <div class="rec-col"><div class="slide-title">Ingredients <small id="rec-meta"></small></div><ul class="rec-ing" id="rec-ing"></ul></div>
+        <div class="rec-col"><div class="slide-title">Steps <small>tap a step to mark your place</small></div><ol class="rec-steps" id="rec-steps"></ol></div>
+      </div>
+    </section>
   </div>
 
   <!-- running timers, visible on every page -->
@@ -87,6 +95,7 @@
     <button data-go="lights"><span>💡</span>Lights</button>
     <button data-go="timers"><span>⏲️</span>Timers</button>
     <button data-go="calendar"><span>📅</span>Calendar</button>
+    <button data-go="recipes"><span>📖</span>Recipes</button>
   </nav>
 
   <!-- timer done -->

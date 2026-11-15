@@ -76,6 +76,11 @@
     .note-row { display: flex; gap: 10px; } .note-row input { flex: 1; color-scheme: dark; }
     button.big { width: 100%; margin-top: 16px; padding: 16px; border-radius: 16px; border: 0; font: inherit; font-size: 18px; font-weight: 600;
       background: var(--gold); color: #0d1117; }
+    textarea + textarea, .note-row + textarea { margin-top: 10px; }
+    .rec-item { display: flex; align-items: center; gap: 8px; padding: 12px; border-radius: 14px; background: var(--panel); margin-bottom: 8px; }
+    .rec-item b { flex: 1; font-weight: 500; } .rec-item small { display: block; color: var(--muted); font-weight: 400; font-size: 13px; }
+    .rec-item button { padding: 9px 12px; border-radius: 12px; border: 0; font: inherit; font-size: 14px; background: #2a3340; color: var(--text); }
+    .rec-item button.show { background: var(--gold); color: #0d1117; font-weight: 600; }
     .note-card { margin-top: 18px; padding: 14px; border-radius: 16px; background: var(--panel); white-space: pre-line; }
     .note-card small { display: block; color: var(--muted); margin-top: 8px; }
     .note-card button { margin-top: 10px; padding: 10px 14px; border-radius: 12px; border: 0; font: inherit; background: #2a3340; color: var(--text); }
@@ -101,6 +106,19 @@
       <h2 id="scene-title">Scenes</h2>
       <div class="scene-grid" id="hue-scenes"></div>
     </section>
+    <section class="view" data-view="recipes">
+      <h1>Recipes</h1>
+      <div id="rec-list"></div>
+      <h2>Add from a link</h2>
+      <div class="note-row"><input id="rec-url" type="url" placeholder="Paste a recipe link…" /></div>
+      <button class="big" id="rec-import">Grab recipe</button>
+      <div class="err" id="rec-err"></div>
+      <h2>Or type it in</h2>
+      <div class="note-row"><input id="rec-name" placeholder="Name" /></div>
+      <textarea id="rec-ing" rows="5" placeholder="Ingredients — one per line"></textarea>
+      <textarea id="rec-steps" rows="6" placeholder="Steps — one per line"></textarea>
+      <button class="big" id="rec-add">Save recipe</button>
+    </section>
     <section class="view" data-view="note">
       <h1>Note</h1>
       <div class="sub">Fills the tablet screen until the time you pick.</div>
@@ -122,6 +140,7 @@
   <nav class="tabs" id="tabs" hidden>
     <button data-v="lights" class="on"><span>💡</span>Lights</button>
     <button data-v="timers"><span>⏲️</span>Timers</button>
+    <button data-v="recipes"><span>📖</span>Recipes</button>
     <button data-v="note"><span>💌</span>Note</button>
   </nav>
 
@@ -259,7 +278,7 @@ function drawTimers(force) {
 }
 
 // ----- refresh loop -----
-let scenesLoaded = false;
+let scenesLoaded = false, recipesLoaded = false;
 // ----- note -----
 function defaultNoteDay() { // next 9am: today if before 9, else tomorrow
   const d = new Date(); if (d.getHours() >= 9) d.setDate(d.getDate() + 1);
@@ -284,9 +303,41 @@ $("note-go").onclick = async () => {
   loadNote();
 };
 
+// ----- recipes -----
+async function loadRecipes() {
+  const list = await api("/api/recipes");
+  $("rec-list").innerHTML = list.length ? list.map((r) => `<div class="rec-item"><b>${esc(r.title)}<small>${[r.time, r.servings].filter(Boolean).map(esc).join(" · ")}</small></b>
+    <button class="show" data-show="${esc(r.id)}">Show on tablet</button><button data-del="${esc(r.id)}" aria-label="Delete">🗑</button></div>`).join("")
+    : `<div class="sub">No recipes yet — add one below.</div>`;
+  $("rec-list").querySelectorAll("[data-show]").forEach((b) => (b.onclick = async () => { flash(b); await api("/api/recipes/show", { method: "POST", body: JSON.stringify({ id: b.dataset.show }) }); }));
+  $("rec-list").querySelectorAll("[data-del]").forEach((b) => (b.onclick = async () => {
+    if (!confirm("Delete this recipe?")) return;
+    await api(`/api/recipes/${encodeURIComponent(b.dataset.del)}`, { method: "DELETE" }); loadRecipes();
+  }));
+}
+async function recipeCall(path, body, btn) {
+  $("rec-err").textContent = ""; btn.disabled = true; const label = btn.textContent; btn.textContent = "Working…";
+  try {
+    const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "Something went wrong");
+    loadRecipes(); return j;
+  } catch (e) { $("rec-err").textContent = e.message; }
+  finally { btn.disabled = false; btn.textContent = label; }
+}
+$("rec-import").onclick = async () => {
+  const url = $("rec-url").value.trim(); if (!url) return;
+  if (await recipeCall("/api/recipes/import", { url }, $("rec-import"))) $("rec-url").value = "";
+};
+$("rec-add").onclick = async () => {
+  const body = { title: $("rec-name").value, ingredients: $("rec-ing").value, steps: $("rec-steps").value };
+  if (await recipeCall("/api/recipes", body, $("rec-add"))) ["rec-name", "rec-ing", "rec-steps"].forEach((id) => ($(id).value = ""));
+};
+
 async function refresh() {
   try {
     if (!scenesLoaded) { await loadScenes(); scenesLoaded = true; }
+    if (!recipesLoaded) { loadRecipes(); recipesLoaded = true; }
     await Promise.all([loadRooms(), loadTimers(), loadNote()]);
   } catch {}
 }

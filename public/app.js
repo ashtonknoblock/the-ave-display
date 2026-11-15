@@ -614,7 +614,7 @@ function ring(on) {
 }
 
 // ===== Pages: dock, swipe, auto-return home =====
-const PAGES = ["home", "lights", "timers", "calendar"];
+const PAGES = ["home", "lights", "timers", "calendar", "recipes"];
 let currentPage = "home";
 let lastTouch = Date.now();
 function go(name) {
@@ -630,6 +630,7 @@ function go(name) {
   currentPage = name;
   if (name === "lights") { updateLights(); updateScenes(); }
   if (name === "timers") loadTimers();
+  if (name === "recipes" && !openRecipe) loadRecipes();
 }
 document.querySelectorAll(".dock button").forEach((b) => (b.onclick = () => go(b.dataset.go)));
 document.querySelector('.dock button[data-go="home"]').classList.add("on");
@@ -653,6 +654,7 @@ pagesEl.addEventListener("touchend", (e) => {
 // back to Home after 60s of no touches
 document.addEventListener("pointerdown", () => (lastTouch = Date.now()), true);
 setInterval(() => {
+  if (cooking()) return; // stay on an open recipe while cooking
   if (currentPage !== "home" && Date.now() - lastTouch > 60000 && document.getElementById("alarm").hidden) go("home");
 }, 5000);
 
@@ -675,7 +677,7 @@ function activity() {
 window.onFullyMotion = activity; // called by Fully when the camera sees motion
 document.addEventListener("pointerdown", activity, true);
 function applyDisplayMode() {
-  const awake = Date.now() - lastActivity < DISPLAY.awakeMs || !document.getElementById("alarm").hidden;
+  const awake = Date.now() - lastActivity < DISPLAY.awakeMs || !document.getElementById("alarm").hidden || cooking();
   const noteUp = !document.getElementById("note").hidden;
   const mode = noteUp ? "note" : nightHours ? (awake ? "nightAwake" : "night") : awake ? "active" : "ambient";
   if (mode !== displayMode) {
@@ -692,6 +694,51 @@ if (hasFully) {
   try { fully.bind("onMotion", "onFullyMotion();"); } catch {}
 }
 setInterval(applyDisplayMode, 5000);
+
+// ===== Recipes =====
+let openRecipe = null, recipeOpenedAt = 0;
+// keep the screen bright and on the recipe for up to 3 hours after opening one
+function cooking() { return Boolean(openRecipe) && currentPage === "recipes" && Date.now() - Math.max(recipeOpenedAt, lastTouch) < 3 * 3600000; }
+async function loadRecipes() {
+  let list = [];
+  try { list = await api("/api/recipes"); } catch { return; }
+  const el = document.getElementById("rec-list");
+  el.innerHTML = list.length ? list.map((r) => `<button class="rec-card" data-id="${esc(r.id)}"><b>${esc(r.title)}</b><small>${[r.time, r.servings, `${r.count} ingredients`].filter(Boolean).map(esc).join(" · ")}</small></button>`).join("")
+    : `<div class="rec-empty">No recipes yet. Add one from the 📖 Recipes tab on the phone remote.</div>`;
+  el.querySelectorAll("[data-id]").forEach((b) => (b.onclick = () => showRecipe(b.dataset.id)));
+}
+async function showRecipe(id) {
+  let r;
+  try { r = await api(`/api/recipes/${encodeURIComponent(id)}`); } catch { return; }
+  openRecipe = r.id; recipeOpenedAt = Date.now();
+  document.getElementById("rec-title").textContent = r.title;
+  document.getElementById("rec-meta").textContent = [r.time, r.servings].filter(Boolean).join(" · ");
+  document.getElementById("rec-ing").innerHTML = r.ingredients.map((x) => `<li>${esc(x)}</li>`).join("") || "<li>—</li>";
+  document.getElementById("rec-steps").innerHTML = r.steps.map((x) => `<li>${esc(x)}</li>`).join("");
+  document.querySelectorAll("#rec-ing li").forEach((li) => (li.onclick = () => li.classList.toggle("got")));
+  const steps = [...document.querySelectorAll("#rec-steps li")];
+  steps.forEach((li, i) => (li.onclick = () => steps.forEach((x, j) => { x.classList.toggle("here", j === i); x.classList.toggle("done", j < i); })));
+  document.getElementById("rec-list").hidden = true;
+  document.getElementById("rec-view").hidden = false;
+  document.getElementById("rec-back").hidden = false;
+  go("recipes"); activity();
+}
+document.getElementById("rec-back").onclick = () => {
+  openRecipe = null;
+  document.getElementById("rec-title").textContent = "Recipes";
+  document.getElementById("rec-view").hidden = true;
+  document.getElementById("rec-back").hidden = true;
+  document.getElementById("rec-list").hidden = false;
+  loadRecipes();
+};
+// "Show on tablet" from the phone
+let lastShowAt = Date.now();
+setInterval(async () => {
+  try {
+    const { showing } = await api("/api/recipes/show");
+    if (showing && showing.at > lastShowAt) { lastShowAt = showing.at; notePeekUntil = Date.now() + 3 * 3600000; document.getElementById("note").hidden = true; showRecipe(showing.id); }
+  } catch {}
+}, 4000);
 
 // ===== Full-screen note (set from the phone remote) =====
 let noteKey = null, notePeekUntil = 0;
