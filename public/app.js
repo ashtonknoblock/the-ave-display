@@ -662,7 +662,7 @@ setInterval(() => {
 const hasFully = typeof window.fully !== "undefined";
 const DISPLAY = {
   awakeMs: 2 * 60 * 1000,   // stay bright this long after the last touch/motion
-  brightness: { active: 200, ambient: 70, nightAwake: 60, night: 4 },
+  brightness: { active: 200, ambient: 70, nightAwake: 60, night: 4, note: 110 },
 };
 let lastActivity = Date.now();
 let lastBrightness = null;
@@ -676,9 +676,10 @@ window.onFullyMotion = activity; // called by Fully when the camera sees motion
 document.addEventListener("pointerdown", activity, true);
 function applyDisplayMode() {
   const awake = Date.now() - lastActivity < DISPLAY.awakeMs || !document.getElementById("alarm").hidden;
-  const mode = nightHours ? (awake ? "nightAwake" : "night") : awake ? "active" : "ambient";
+  const noteUp = !document.getElementById("note").hidden;
+  const mode = noteUp ? "note" : nightHours ? (awake ? "nightAwake" : "night") : awake ? "active" : "ambient";
   if (mode !== displayMode) {
-    document.body.classList.remove("mode-active", "mode-ambient", "mode-nightAwake", "mode-night");
+    document.body.classList.remove("mode-active", "mode-ambient", "mode-nightAwake", "mode-night", "mode-note");
     document.body.classList.add(`mode-${mode}`);
     displayMode = mode;
   }
@@ -691,6 +692,21 @@ if (hasFully) {
   try { fully.bind("onMotion", "onFullyMotion();"); } catch {}
 }
 setInterval(applyDisplayMode, 5000);
+
+// ===== Full-screen note (set from the phone remote) =====
+let noteKey = null, notePeekUntil = 0;
+async function loadNote() {
+  let n = null;
+  try { n = (await api("/api/note")).note; } catch { return; }
+  const el = document.getElementById("note");
+  const key = n ? n.at : null;
+  if (key !== noteKey) { noteKey = key; notePeekUntil = 0; if (n) document.getElementById("note-text").textContent = n.text; }
+  const show = Boolean(n) && Date.now() > notePeekUntil;
+  if (el.hidden === show) { el.hidden = !show; applyDisplayMode(); }
+}
+document.getElementById("note").onclick = () => { notePeekUntil = Date.now() + 60000; document.getElementById("note").hidden = true; activity(); applyDisplayMode(); };
+loadNote();
+setInterval(loadNote, 10000);
 
 // ===== Phone remote info (Lights page) =====
 api("/api/remote-info").then((r) => {

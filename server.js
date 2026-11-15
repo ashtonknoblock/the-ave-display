@@ -10,6 +10,7 @@ const { execSync } = require("child_process");
 const hue = require("./lib/hue");
 const events = require("./lib/events");
 const timers = require("./lib/timers");
+const note = require("./lib/note");
 const { env, saveEnv } = require("./lib/env");
 
 // Phones on the Wi-Fi need a PIN; the tablet itself (localhost) doesn't.
@@ -112,6 +113,16 @@ const server = http.createServer((req, res) => {
   if (url.pathname.startsWith("/api/") && !authed(req)) return sendJson(res, 401, { error: "PIN required" });
 
   if (url.pathname.startsWith("/api/hue/")) return handleHue(req, res, url);
+
+  if (url.pathname === "/api/note") {
+    (async () => {
+      if (req.method === "GET") return sendJson(res, 200, { note: note.get() });
+      if (req.method === "POST") { const b = await readBody(req); return sendJson(res, 200, { note: note.set(b.text, b.until) }); }
+      if (req.method === "DELETE") return sendJson(res, 200, note.clear());
+      sendJson(res, 404, { error: "Not found" });
+    })().catch((err) => sendJson(res, err.code || 500, { error: err.message }));
+    return;
+  }
 
   if (url.pathname.startsWith("/api/timers")) {
     (async () => {

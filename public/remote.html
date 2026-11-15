@@ -70,6 +70,15 @@
                    border: 1.5px solid #2a3340; background: var(--panel); color: var(--text); margin: 18px 0 12px; }
     .login button { width: 100%; padding: 16px; background: var(--gold); color: #0d1117; font-weight: 600; font-size: 18px; }
     .err { color: var(--red); min-height: 22px; margin-top: 10px; }
+    textarea, .note-row input { width: 100%; font: inherit; font-size: 18px; padding: 12px; border-radius: 14px; border: 1px solid #2a3340;
+      background: var(--panel); color: var(--text); }
+    textarea { resize: vertical; }
+    .note-row { display: flex; gap: 10px; } .note-row input { flex: 1; color-scheme: dark; }
+    button.big { width: 100%; margin-top: 16px; padding: 16px; border-radius: 16px; border: 0; font: inherit; font-size: 18px; font-weight: 600;
+      background: var(--gold); color: #0d1117; }
+    .note-card { margin-top: 18px; padding: 14px; border-radius: 16px; background: var(--panel); white-space: pre-line; }
+    .note-card small { display: block; color: var(--muted); margin-top: 8px; }
+    .note-card button { margin-top: 10px; padding: 10px 14px; border-radius: 12px; border: 0; font: inherit; background: #2a3340; color: var(--text); }
   </style>
 </head>
 <body>
@@ -92,6 +101,15 @@
       <h2 id="scene-title">Scenes</h2>
       <div class="scene-grid" id="hue-scenes"></div>
     </section>
+    <section class="view" data-view="note">
+      <h1>Note</h1>
+      <div class="sub">Fills the tablet screen until the time you pick.</div>
+      <textarea id="note-in" rows="5" placeholder="Type a message…"></textarea>
+      <h2>Show until</h2>
+      <div class="note-row"><input type="date" id="note-day" /><input type="time" id="note-time" value="09:00" /></div>
+      <button class="big" id="note-go">Show on tablet</button>
+      <div id="note-now"></div>
+    </section>
     <section class="view" data-view="timers">
       <h1>Timers</h1>
       <div class="sub">Rings on the tablet.</div>
@@ -104,6 +122,7 @@
   <nav class="tabs" id="tabs" hidden>
     <button data-v="lights" class="on"><span>💡</span>Lights</button>
     <button data-v="timers"><span>⏲️</span>Timers</button>
+    <button data-v="note"><span>💌</span>Note</button>
   </nav>
 
 <script>
@@ -241,10 +260,34 @@ function drawTimers(force) {
 
 // ----- refresh loop -----
 let scenesLoaded = false;
+// ----- note -----
+function defaultNoteDay() { // next 9am: today if before 9, else tomorrow
+  const d = new Date(); if (d.getHours() >= 9) d.setDate(d.getDate() + 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+$("note-day").value = defaultNoteDay();
+async function loadNote() {
+  const { note } = await api("/api/note");
+  $("note-now").innerHTML = note ? `<div class="note-card"><b>💌 A note is up on the tablet</b><small>until ${new Date(note.until).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })}</small><button id="note-clear">Take it down</button></div>` : "";
+  if (note) $("note-clear").onclick = async () => { await api("/api/note", { method: "DELETE" }); loadNote(); };
+}
+$("note-go").onclick = async () => {
+  const text = $("note-in").value.trim();
+  if (!text) return;
+  const [y, m, d] = $("note-day").value.split("-").map(Number);
+  const [hh, mm] = $("note-time").value.split(":").map(Number);
+  const until = new Date(y, m - 1, d, hh, mm);
+  if (!(until > new Date())) { alert("Pick a time in the future."); return; }
+  flash($("note-go"));
+  await api("/api/note", { method: "POST", body: JSON.stringify({ text, until: until.toISOString() }) });
+  $("note-in").value = ""; // don't leave the message sitting on the phone
+  loadNote();
+};
+
 async function refresh() {
   try {
     if (!scenesLoaded) { await loadScenes(); scenesLoaded = true; }
-    await Promise.all([loadRooms(), loadTimers()]);
+    await Promise.all([loadRooms(), loadTimers(), loadNote()]);
   } catch {}
 }
 setInterval(() => { if (!$("app").hidden && document.visibilityState === "visible") refresh(); }, 3000);
