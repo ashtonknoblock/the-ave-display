@@ -736,14 +736,27 @@ setInterval(() => currentPage === "tv" && loadTvs(), 15000);
 
 // ===== Recipes =====
 let openRecipe = null, recipeOpenedAt = 0;
+const recOpen = new Set(); // categories expanded on the list (all start closed)
 // keep the screen bright and on the recipe for up to 3 hours after opening one
 function cooking() { return Boolean(openRecipe) && currentPage === "recipes" && Date.now() - Math.max(recipeOpenedAt, lastTouch) < 3 * 3600000; }
 async function loadRecipes() {
   let list = [];
   try { list = await api("/api/recipes"); } catch { return; }
   const el = document.getElementById("rec-list");
-  el.innerHTML = list.length ? list.map((r) => `<button class="rec-card" data-id="${esc(r.id)}"><b>${esc(r.title)}</b><small>${[r.time, r.servings, `${r.count} ingredients`].filter(Boolean).map(esc).join(" · ")}</small></button>`).join("")
-    : `<div class="rec-empty">No recipes yet. Add one from the 📖 Recipes tab on the phone remote.</div>`;
+  if (!list.length) { el.innerHTML = `<div class="rec-empty">No recipes yet. Add one from the 📖 Recipes tab on the phone remote.</div>`; return; }
+  const CATS = ["Breakfast", "Apps & Snacks", "Soups & Chili", "Dinner", "Crockpot", "Sides & Salads"];
+  const groups = CATS.map((c) => [c, list.filter((r) => r.category === c)]).filter(([, rs]) => rs.length);
+  const card = (r) => `<button class="rec-card" data-id="${esc(r.id)}"><b>${esc(r.title)}</b><small>${[r.time, r.servings].filter(Boolean).map(esc).join(" · ")}</small></button>`;
+  el.innerHTML = `<div class="rec-pills">${groups.map(([c, rs], i) => `<button class="rec-pill" data-sec="${i}">${esc(c)} <span>${rs.length}</span></button>`).join("")}</div>`
+    + groups.map(([c, rs], i) => `<section class="rec-sec${recOpen.has(c) ? " open" : ""}" id="rec-sec-${i}" data-cat="${esc(c)}">
+        <button class="rec-sec-head"><b>${esc(c)}</b><span>${rs.length} ${rs.length === 1 ? "recipe" : "recipes"} <i>▾</i></span></button>
+        <div class="rec-sec-body">${rs.map(card).join("")}</div></section>`).join("");
+  const toggle = (sec, open) => { sec.classList.toggle("open", open); open ? recOpen.add(sec.dataset.cat) : recOpen.delete(sec.dataset.cat); };
+  el.querySelectorAll(".rec-sec-head").forEach((h) => (h.onclick = () => toggle(h.parentNode, !h.parentNode.classList.contains("open"))));
+  el.querySelectorAll(".rec-pill").forEach((p) => (p.onclick = () => {
+    const sec = document.getElementById(`rec-sec-${p.dataset.sec}`); toggle(sec, true);
+    el.scrollTop = sec.offsetTop - el.offsetTop - 8;
+  }));
   el.querySelectorAll("[data-id]").forEach((b) => (b.onclick = () => showRecipe(b.dataset.id)));
 }
 async function showRecipe(id) {

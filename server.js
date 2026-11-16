@@ -136,6 +136,7 @@ const server = http.createServer((req, res) => {
       if (p === "/api/recipes/show" && req.method === "POST") return sendJson(res, 200, recipes.show((await readBody(req)).id));
       if (m && req.method === "GET") { const r = recipes.get(m[1]); return r ? sendJson(res, 200, r) : sendJson(res, 404, { error: "Not found" }); }
       if (m && req.method === "DELETE") return sendJson(res, 200, recipes.remove(m[1]));
+      if (m && req.method === "PATCH") return sendJson(res, 200, recipes.setCategory(m[1], (await readBody(req)).category));
       sendJson(res, 404, { error: "Not found" });
     })().catch((err) => sendJson(res, err.code || 500, { error: err.message }));
     return;

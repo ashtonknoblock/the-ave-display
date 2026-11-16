@@ -81,6 +81,16 @@
     .rec-item b { flex: 1; font-weight: 500; } .rec-item small { display: block; color: var(--muted); font-weight: 400; font-size: 13px; }
     .rec-item button { padding: 9px 12px; border-radius: 12px; border: 0; font: inherit; font-size: 14px; background: #2a3340; color: var(--text); }
     .rec-item button.show { background: var(--gold); color: #0d1117; font-weight: 600; }
+    .rec-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .rec-pills button { font: inherit; font-size: 14px; border: 0; border-radius: 999px; padding: 8px 12px; background: var(--panel); color: var(--text); }
+    .rec-pills span, .rec-group summary span { color: var(--gold); }
+    .rec-group { margin-bottom: 10px; scroll-margin-top: 10px; }
+    .rec-group summary { list-style: none; cursor: pointer; padding: 14px; border-radius: 14px; background: #1b222c; font-weight: 600; display: flex; justify-content: space-between; }
+    .rec-group summary::-webkit-details-marker { display: none; }
+    .rec-group summary::after { content: "▾"; color: var(--muted); } .rec-group[open] summary::after { content: "▴"; }
+    .rec-group[open] summary { margin-bottom: 8px; }
+    select.rec-cat { margin-top: 6px; font: inherit; font-size: 13px; padding: 4px 6px; border-radius: 8px; border: 1px solid #2a3340; background: #121821; color: var(--muted); }
+    select.big-sel { margin-top: 0; font-size: 16px; padding: 12px; border-radius: 14px; flex: 0 0 auto; max-width: 45%; }
     .note-card { margin-top: 18px; padding: 14px; border-radius: 16px; background: var(--panel); white-space: pre-line; }
     .note-card small { display: block; color: var(--muted); margin-top: 8px; }
     .note-card button { margin-top: 10px; padding: 10px 14px; border-radius: 12px; border: 0; font: inherit; background: #2a3340; color: var(--text); }
@@ -134,7 +144,7 @@
       <button class="big" id="rec-import">Grab recipe</button>
       <div class="err" id="rec-err"></div>
       <h2>Or type it in</h2>
-      <div class="note-row"><input id="rec-name" placeholder="Name" /></div>
+      <div class="note-row"><input id="rec-name" placeholder="Name" /><select id="rec-newcat" class="rec-cat big-sel"><option value="">Category: auto</option><option>Breakfast</option><option>Apps &amp; Snacks</option><option>Soups &amp; Chili</option><option>Dinner</option><option>Crockpot</option><option>Sides &amp; Salads</option></select></div>
       <textarea id="rec-ing" rows="5" placeholder="Ingredients — one per line"></textarea>
       <textarea id="rec-steps" rows="6" placeholder="Steps — one per line"></textarea>
       <button class="big" id="rec-add">Save recipe</button>
@@ -363,11 +373,24 @@ async function tvPress(btn) {
 }
 
 // ----- recipes -----
+const REC_CATS = ["Breakfast", "Apps & Snacks", "Soups & Chili", "Dinner", "Crockpot", "Sides & Salads"];
+const recOpenR = new Set();
 async function loadRecipes() {
   const list = await api("/api/recipes");
-  $("rec-list").innerHTML = list.length ? list.map((r) => `<div class="rec-item"><b>${esc(r.title)}<small>${[r.time, r.servings].filter(Boolean).map(esc).join(" · ")}</small></b>
-    <button class="show" data-show="${esc(r.id)}">Show on tablet</button><button data-del="${esc(r.id)}" aria-label="Delete">🗑</button></div>`).join("")
+  const groups = REC_CATS.map((c) => [c, list.filter((r) => r.category === c)]).filter(([, rs]) => rs.length);
+  const item = (r) => `<div class="rec-item"><b>${esc(r.title)}<small>${[r.time, r.servings].filter(Boolean).map(esc).join(" · ")}</small>
+      <select class="rec-cat" data-cat="${esc(r.id)}">${REC_CATS.map((c) => `<option${c === r.category ? " selected" : ""}>${esc(c)}</option>`).join("")}</select></b>
+    <button class="show" data-show="${esc(r.id)}">Show on tablet</button><button data-del="${esc(r.id)}" aria-label="Delete">🗑</button></div>`;
+  $("rec-list").innerHTML = list.length
+    ? `<div class="rec-pills">${groups.map(([c, rs], i) => `<button data-jump="${i}">${esc(c)} <span>${rs.length}</span></button>`).join("")}</div>`
+      + groups.map(([c, rs], i) => `<details class="rec-group" id="rgrp-${i}" data-c="${esc(c)}"${recOpenR.has(c) ? " open" : ""}><summary>${esc(c)} <span>${rs.length}</span></summary>${rs.map(item).join("")}</details>`).join("")
     : `<div class="sub">No recipes yet — add one below.</div>`;
+  $("rec-list").querySelectorAll("details").forEach((d) => d.addEventListener("toggle", () => (d.open ? recOpenR.add(d.dataset.c) : recOpenR.delete(d.dataset.c))));
+  $("rec-list").querySelectorAll("[data-jump]").forEach((b) => (b.onclick = () => { const d = $(`rgrp-${b.dataset.jump}`); d.open = true; d.scrollIntoView({ behavior: "smooth", block: "start" }); }));
+  $("rec-list").querySelectorAll("[data-cat]").forEach((s) => (s.onchange = async () => {
+    await api(`/api/recipes/${encodeURIComponent(s.dataset.cat)}`, { method: "PATCH", body: JSON.stringify({ category: s.value }) });
+    recOpenR.add(s.value); loadRecipes();
+  }));
   $("rec-list").querySelectorAll("[data-show]").forEach((b) => (b.onclick = async () => { flash(b); await api("/api/recipes/show", { method: "POST", body: JSON.stringify({ id: b.dataset.show }) }); }));
   $("rec-list").querySelectorAll("[data-del]").forEach((b) => (b.onclick = async () => {
     if (!confirm("Delete this recipe?")) return;
@@ -389,7 +412,7 @@ $("rec-import").onclick = async () => {
   if (await recipeCall("/api/recipes/import", { url }, $("rec-import"))) $("rec-url").value = "";
 };
 $("rec-add").onclick = async () => {
-  const body = { title: $("rec-name").value, ingredients: $("rec-ing").value, steps: $("rec-steps").value };
+  const body = { title: $("rec-name").value, ingredients: $("rec-ing").value, steps: $("rec-steps").value, category: $("rec-newcat").value };
   if (await recipeCall("/api/recipes", body, $("rec-add"))) ["rec-name", "rec-ing", "rec-steps"].forEach((id) => ($(id).value = ""));
 };
 
