@@ -142,6 +142,26 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Speak a message out loud on the voicebox (the Pi Zero voice assistant).
+  if (url.pathname === "/api/voicebox/say" && req.method === "POST") {
+    readBody(req).then((b) => {
+      const text = String(b.text || "").trim().slice(0, 300);
+      if (!text) return sendJson(res, 400, { error: "Type a message" });
+      const target = new URL("/api/say", env.VOICEBOX_URL || "http://192.168.1.216:8080");
+      const body = JSON.stringify({ text });
+      const r = http.request(target, { method: "POST", timeout: 8000, headers: {
+        "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body),
+        "X-Voicebox-Pin": env.VOICEBOX_PIN || env.REMOTE_PIN } }, (vr) => {
+        vr.resume();
+        sendJson(res, vr.statusCode === 200 ? 200 : 502, vr.statusCode === 200 ? { ok: true } : { error: "Voicebox said " + vr.statusCode });
+      });
+      r.on("timeout", () => r.destroy(new Error("Voicebox didn't answer")));
+      r.on("error", (err) => sendJson(res, 502, { error: "Can't reach the voicebox: " + err.message }));
+      r.end(body);
+    });
+    return;
+  }
+
   if (url.pathname === "/api/note") {
     (async () => {
       if (req.method === "GET") return sendJson(res, 200, { note: note.get() });

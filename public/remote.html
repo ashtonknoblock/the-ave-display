@@ -52,6 +52,7 @@
     .room:not(.on) input[type=range] { opacity: .35; }
     .presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
     .presets button { padding: 16px 0; font-size: 20px; font-weight: 300; }
+    #say-presets button { font-size: 15px; font-weight: 500; }
     .presets small { display: block; font-size: 11px; color: var(--muted); }
     .timer { background: var(--panel); border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
     .timer.done { background: rgba(255,123,114,.2); }
@@ -157,6 +158,12 @@
       <div class="note-row"><input type="date" id="note-day" /><input type="time" id="note-time" value="09:00" /></div>
       <button class="big" id="note-go">Show on tablet</button>
       <div id="note-now"></div>
+      <h1 style="margin-top:28px">Say it out loud</h1>
+      <div class="sub">Plays on the voicebox speaker.</div>
+      <div class="presets" id="say-presets" style="grid-template-columns:repeat(2,1fr)"></div>
+      <textarea id="say-in" rows="3" placeholder="Dinner's ready!"></textarea>
+      <button class="big" id="say-go">🔊 Say it</button>
+      <div class="err" id="say-msg"></div>
     </section>
     <section class="view" data-view="timers">
       <h1>Timers</h1>
@@ -334,6 +341,23 @@ $("note-go").onclick = async () => {
   $("note-in").value = ""; // don't leave the message sitting on the phone
   loadNote();
 };
+
+// ----- voicebox: say it out loud -----
+const SAY_PRESETS = ["Dinner's ready!", "Come here a sec!", "Time to go!", "Love you!"];
+async function sayIt(text) {
+  text = (text || "").trim();
+  if (!text) return;
+  flash($("say-go"));
+  $("say-msg").textContent = "";
+  try {
+    const r = await api("/api/voicebox/say", { method: "POST", body: JSON.stringify({ text }) });
+    $("say-msg").textContent = r.ok ? "Sent 🔊" : (r.error || "Didn't work");
+    if (r.ok) $("say-in").value = "";
+  } catch (e) { if (e.message !== "locked") $("say-msg").textContent = "Didn't work"; }
+}
+$("say-presets").innerHTML = SAY_PRESETS.map((p, i) => `<button data-i="${i}">${esc(p)}</button>`).join("");
+$("say-presets").onclick = (e) => { const b = e.target.closest("button"); if (b) sayIt(SAY_PRESETS[b.dataset.i]); };
+$("say-go").onclick = () => sayIt($("say-in").value);
 
 
 // ===== TVs =====
