@@ -107,7 +107,8 @@ async function handleHue(req, res, url) {
     if (url.pathname === "/api/hue/rooms" && req.method === "GET") return sendJson(res, 200, await hue.rooms());
     const m = url.pathname.match(/^\/api\/hue\/rooms\/([^/]+)$/);
     if (m && req.method === "PUT") return sendJson(res, 200, await hue.setRoom(m[1], await readBody(req)));
-    if (url.pathname === "/api/hue/alert/red" && req.method === "POST") { hue.alertRed().catch((e) => console.error("Red alert:", e.message)); return sendJson(res, 200, { ok: true }); }
+    const al = url.pathname.match(/^\/api\/hue\/alert\/(red|blue|gold)$/); // flash every light that colour, then restore
+    if (al && req.method === "POST") { hue.alertRed(al[1]).catch((e) => console.error("Light alert:", e.message)); return sendJson(res, 200, { ok: true }); }
     if (url.pathname === "/api/hue/scenes" && req.method === "GET") return sendJson(res, 200, await hue.scenes());
     const sc = url.pathname.match(/^\/api\/hue\/scenes\/(.+)$/);
     if (sc && req.method === "POST") return sendJson(res, 200, await hue.runScene(decodeURIComponent(sc[1])));
