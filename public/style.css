@@ -412,3 +412,7 @@ body.mode-night .mini-wx, body.mode-night .status { opacity: 0; transition: opac
   .hue-connect, .hue-connect button { font-size: 3.2vw; }
   .status { font-size: 2.2vw; }
 }
+
+/* tap-to-start timers inside recipe steps, and the party "now playing" pill */
+.step-timer { font: inherit; font-size: 0.8em; margin-left: 0.5vw; padding: 0.3vh 0.9vw; border: 0; border-radius: 999px; background: #ffc45c; color: #0d1117; font-weight: 600; white-space: nowrap; }
+.now-playing { position: fixed; top: 1.4vh; right: 1.6vw; z-index: 20; padding: 0.8vh 1.2vw; border-radius: 999px; background: rgba(255, 196, 92, 0.16); box-shadow: inset 0 0 0 1px #ffc45c; font-size: 1.4vw; max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

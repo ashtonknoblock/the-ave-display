@@ -20,6 +20,28 @@ if (!env.REMOTE_PIN) {
   env.REMOTE_PIN = String(Math.floor(1000 + Math.random() * 9000));
   saveEnv();
 }
+// Talk to the voicebox (Pi Zero voice assistant) on the home network.
+function voicebox(p, method, body, timeoutMs = 8000) {
+  return new Promise((resolve, reject) => {
+    const target = new URL(p, env.VOICEBOX_URL || "http://192.168.1.216:8080");
+    const data = body == null ? null : JSON.stringify(body);
+    const headers = { "X-Voicebox-Pin": env.VOICEBOX_PIN || env.REMOTE_PIN };
+    if (data) { headers["Content-Type"] = "application/json"; headers["Content-Length"] = Buffer.byteLength(data); }
+    const r = http.request(target, { method, timeout: timeoutMs, headers }, (vr) => {
+      let raw = "";
+      vr.setEncoding("utf8");
+      vr.on("data", (c) => (raw += c));
+      vr.on("end", () => { let json = {}; try { json = JSON.parse(raw); } catch {} resolve({ status: vr.statusCode, json }); });
+    });
+    r.on("timeout", () => r.destroy(new Error("Voicebox didn't answer")));
+    r.on("error", reject);
+    r.end(data || undefined);
+  });
+}
+let partyNow = null;
+// When any timer finishes, the voicebox says so out loud.
+timers.onDone((t) => voicebox("/api/say", "POST", { text: t.say || timers.spoken(t) }).catch(() => {}));
+
 function isLocal(req) {
   const a = req.socket.remoteAddress || "";
   return a === "127.0.0.1" || a === "::1" || a.endsWith(":127.0.0.1");
@@ -85,6 +107,7 @@ async function handleHue(req, res, url) {
     if (url.pathname === "/api/hue/rooms" && req.method === "GET") return sendJson(res, 200, await hue.rooms());
     const m = url.pathname.match(/^\/api\/hue\/rooms\/([^/]+)$/);
     if (m && req.method === "PUT") return sendJson(res, 200, await hue.setRoom(m[1], await readBody(req)));
+    if (url.pathname === "/api/hue/alert/red" && req.method === "POST") { hue.alertRed().catch((e) => console.error("Red alert:", e.message)); return sendJson(res, 200, { ok: true }); }
     if (url.pathname === "/api/hue/scenes" && req.method === "GET") return sendJson(res, 200, await hue.scenes());
     const sc = url.pathname.match(/^\/api\/hue\/scenes\/(.+)$/);
     if (sc && req.method === "POST") return sendJson(res, 200, await hue.runScene(decodeURIComponent(sc[1])));
@@ -129,6 +152,12 @@ const server = http.createServer((req, res) => {
   if (url.pathname.startsWith("/api/recipes")) {
     (async () => {
       const p = url.pathname, m = p.match(/^\/api\/recipes\/([\w-]+)$/);
+      if (p === "/api/recipes/cook" && req.method === "GET") return sendJson(res, 200, recipes.cookState());
+      if (p === "/api/recipes/cook" && req.method === "POST") return sendJson(res, 200, recipes.setCook(await readBody(req)));
+      if (p === "/api/recipes/cook/timer" && req.method === "POST") {
+        const t = recipes.stepTimer(await readBody(req));
+        return sendJson(res, 200, { ok: true, spoken: t.human, timer: timers.add(t.seconds, t.label, t.say) });
+      }
       if (p === "/api/recipes" && req.method === "GET") return sendJson(res, 200, recipes.list());
       if (p === "/api/recipes" && req.method === "POST") return sendJson(res, 200, recipes.add(await readBody(req)));
       if (p === "/api/recipes/import" && req.method === "POST") return sendJson(res, 200, await recipes.importUrl((await readBody(req)).url));
@@ -142,24 +171,28 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Voicebox (the Pi Zero voice assistant): /say speaks a message, /ask runs it like a spoken question.
-  if ((url.pathname === "/api/voicebox/say" || url.pathname === "/api/voicebox/ask") && req.method === "POST") {
-    readBody(req).then((b) => {
-      const text = String(b.text || "").trim().slice(0, 300);
-      if (!text) return sendJson(res, 400, { error: "Type a message" });
-      const target = new URL(url.pathname.endsWith("/ask") ? "/api/ask" : "/api/say", env.VOICEBOX_URL || "http://192.168.1.216:8080");
-      const body = JSON.stringify({ text });
-      const r = http.request(target, { method: "POST", timeout: 8000, headers: {
-        "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body),
-        "X-Voicebox-Pin": env.VOICEBOX_PIN || env.REMOTE_PIN } }, (vr) => {
-        vr.resume();
-        sendJson(res, vr.statusCode === 200 ? 200 : 502, vr.statusCode === 200 ? { ok: true } : { error: "Voicebox said " + vr.statusCode });
-      });
-      r.on("timeout", () => r.destroy(new Error("Voicebox didn't answer")));
-      r.on("error", (err) => sendJson(res, 502, { error: "Can't reach the voicebox: " + err.message }));
-      r.end(body);
-    });
+  // Voicebox (the Pi Zero voice assistant): say / ask / party controls are passed straight through.
+  if (url.pathname.startsWith("/api/voicebox/")) {
+    (async () => {
+      const sub = url.pathname.slice("/api/voicebox".length);
+      if (!/^\/(say|ask|party|party\/(search|add|remove))$/.test(sub)) return sendJson(res, 404, { error: "Not found" });
+      const b = req.method === "POST" ? await readBody(req) : null;
+      if (sub === "/say" || sub === "/ask") {
+        b.text = String(b.text || "").trim().slice(0, 300);
+        if (!b.text) return sendJson(res, 400, { error: "Type a message" });
+      }
+      const r = await voicebox("/api" + sub, req.method, b, sub === "/party/search" ? 30000 : 8000);
+      if (r.status === 200) return sendJson(res, 200, { ...r.json, ok: true });
+      sendJson(res, 502, { error: r.json.error || (r.status === 409 ? "The voicebox is busy" : "Voicebox said " + r.status) });
+    })().catch((err) => sendJson(res, 502, { error: "Can't reach the voicebox: " + err.message }));
     return;
+  }
+
+  // What party mode is playing, so the tablet can show it (the voicebox reports it here).
+  if (url.pathname === "/api/party/now") {
+    if (req.method === "POST") return void readBody(req).then((b) => { partyNow = b.title ? { title: String(b.title).slice(0, 80), at: Date.now() } : null; sendJson(res, 200, { ok: true }); });
+    if (partyNow && Date.now() - partyNow.at > 8 * 60000) partyNow = null;
+    return sendJson(res, 200, { now: partyNow });
   }
 
   if (url.pathname === "/api/note") {

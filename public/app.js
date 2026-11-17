@@ -759,6 +759,14 @@ async function loadRecipes() {
   }));
   el.querySelectorAll("[data-id]").forEach((b) => (b.onclick = () => showRecipe(b.dataset.id)));
 }
+// which step we're on: set by tapping a step, or by the voicebox ("next step")
+let cookStep = null;
+function markStep(i, scroll) {
+  cookStep = i;
+  const steps = [...document.querySelectorAll("#rec-steps li")];
+  steps.forEach((x, j) => { x.classList.toggle("here", j === i); x.classList.toggle("done", j < i); });
+  if (scroll && steps[i]) steps[i].scrollIntoView({ block: "center", behavior: "smooth" });
+}
 async function showRecipe(id) {
   let r;
   try { r = await api(`/api/recipes/${encodeURIComponent(id)}`); } catch { return; }
@@ -767,10 +775,17 @@ async function showRecipe(id) {
   document.getElementById("rec-meta").textContent = [r.time, r.servings].filter(Boolean).join(" · ");
   document.getElementById("rec-ing").innerHTML = (r.ingredients.map((x) => /:$/.test(x) ? `<li class="sub">${esc(x)}</li>` : `<li>${esc(x)}</li>`).join("") || "<li>—</li>")
     + (r.notes ? `<li class="rec-note">${esc(r.notes)}</li>` : "");
-  document.getElementById("rec-steps").innerHTML = r.steps.map((x) => `<li>${esc(x)}</li>`).join("");
+  document.getElementById("rec-steps").innerHTML = r.steps.map((x, i) => `<li>${esc(x)}${((r.stepTimes || [])[i] || []).map((t, k) => ` <button class="step-timer" data-i="${i}" data-k="${k}">⏲ ${esc(t.label)}</button>`).join("")}</li>`).join("");
+  cookStep = null;
+  api("/api/recipes/cook", { method: "POST", body: JSON.stringify({ id: r.id, step: null }) }).catch(() => {});
+  document.querySelectorAll("#rec-steps .step-timer").forEach((b) => (b.onclick = async (e) => {
+    e.stopPropagation(); unlockAudio();
+    try { await api("/api/recipes/cook/timer", { method: "POST", body: JSON.stringify({ id: r.id, step: Number(b.dataset.i), k: Number(b.dataset.k) }) }); b.textContent = "⏲ started"; } catch {}
+    loadTimers();
+  }));
   document.querySelectorAll("#rec-ing li:not(.sub):not(.rec-note)").forEach((li) => (li.onclick = () => li.classList.toggle("got")));
   const steps = [...document.querySelectorAll("#rec-steps li")];
-  steps.forEach((li, i) => (li.onclick = () => steps.forEach((x, j) => { x.classList.toggle("here", j === i); x.classList.toggle("done", j < i); })));
+  steps.forEach((li, i) => (li.onclick = () => { markStep(i); api("/api/recipes/cook", { method: "POST", body: JSON.stringify({ step: i }) }).catch(() => {}); }));
   document.getElementById("rec-list").hidden = true;
   document.getElementById("rec-view").hidden = false;
   document.getElementById("rec-back").hidden = false;
@@ -778,6 +793,7 @@ async function showRecipe(id) {
 }
 document.getElementById("rec-back").onclick = () => {
   openRecipe = null;
+  api("/api/recipes/cook", { method: "POST", body: JSON.stringify({ id: null }) }).catch(() => {});
   document.getElementById("rec-title").textContent = "Recipes";
   document.getElementById("rec-view").hidden = true;
   document.getElementById("rec-back").hidden = true;
@@ -792,6 +808,21 @@ setInterval(async () => {
     if (showing && showing.at > lastShowAt) { lastShowAt = showing.at; notePeekUntil = Date.now() + 3 * 3600000; document.getElementById("note").hidden = true; showRecipe(showing.id); }
   } catch {}
 }, 4000);
+
+// follow the voicebox through the steps, and show what party mode is playing
+setInterval(async () => {
+  try {
+    if (openRecipe) {
+      const c = await api("/api/recipes/cook");
+      if (c.recipe && c.recipe.id === openRecipe && c.step != null && c.step !== cookStep) { markStep(c.step, true); activity(); }
+    }
+  } catch {}
+  try {
+    const { now } = await api("/api/party/now"), el = document.getElementById("now-playing");
+    el.hidden = !now;
+    if (now) el.textContent = "🎉 Now playing: " + now.title;
+  } catch {}
+}, 3000);
 
 // ===== Full-screen note (set from the phone remote) =====
 let noteKey = null, notePeekUntil = 0;

@@ -96,6 +96,13 @@
     .try::after { content: "▶"; color: var(--gold); flex: 0 0 auto; } .try.sent::after { content: "🔊"; } .try.fail::after { content: "⚠️"; }
     .try small, .tip small { display: block; color: var(--muted); margin-top: 3px; font-size: 13px; }
     .tip { padding: 10px 14px; margin-bottom: 8px; font-size: 15px; } .guide-h { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; margin: 14px 4px 8px; }
+    .p-row { display: flex; gap: 8px; margin-bottom: 10px; }
+    .p-row input { flex: 1; min-width: 0; font: inherit; font-size: 16px; padding: 12px; border-radius: 14px; border: 1px solid #2a3340; background: #121821; color: var(--text); }
+    .p-row button { font: inherit; font-weight: 600; border: 0; border-radius: 14px; padding: 0 18px; background: var(--gold); color: #0d1117; }
+    .p-song { display: flex; gap: 8px; align-items: stretch; margin-bottom: 8px; }
+    .p-song .try, .p-song .tip { flex: 1; min-width: 0; margin-bottom: 0; } .p-song .tip { background: var(--panel); border-radius: 12px; }
+    .p-x { font: inherit; font-size: 14px; border: 0; border-radius: 12px; padding: 0 14px; background: var(--panel); color: var(--muted); flex: 0 0 auto; }
+    .p-x[data-add] { background: var(--gold); color: #0d1117; font-weight: 600; }
     .note-card { margin-top: 18px; padding: 14px; border-radius: 16px; background: var(--panel); white-space: pre-line; }
     .note-card small { display: block; color: var(--muted); margin-top: 8px; }
     .note-card button { margin-top: 10px; padding: 10px 14px; border-radius: 12px; border: 0; font: inherit; background: #2a3340; color: var(--text); }
@@ -172,6 +179,20 @@
       <div class="sub">Everything the little speaker with the big button can do. Tap anything with a ▶ and it answers out loud, just like you'd said it.</div>
       <div id="guide"></div>
     </section>
+    <section class="view" data-view="party">
+      <h1>Party</h1>
+      <div class="sub" id="party-now">Lights, TV and a song.</div>
+      <div class="presets" id="party-btns" style="grid-template-columns:repeat(3,1fr)">
+        <button data-a="start">🎉 Start</button><button data-a="next">⏭ Next song</button><button data-a="stop">🛑 Party's over</button>
+      </div>
+      <div class="err" id="party-msg"></div>
+      <h2>Add a song</h2>
+      <div class="p-row"><input type="text" id="party-q" placeholder="Song and artist" autocomplete="off" /><button id="party-find">Find</button></div>
+      <div id="party-results"></div>
+      <h2>Songs <small id="party-count"></small></h2>
+      <div class="sub">Tap a song to play it. ✕ takes it off the list.</div>
+      <div id="party-list"></div>
+    </section>
     <section class="view" data-view="timers">
       <h1>Timers</h1>
       <div class="sub">Rings on the tablet.</div>
@@ -187,6 +208,7 @@
     <button data-v="tv"><span>📺</span>TV</button>
     <button data-v="recipes"><span>📖</span>Recipes</button>
     <button data-v="note"><span>💌</span>Note</button>
+    <button data-v="party"><span>🎉</span>Party</button>
   </nav>
 
 <script>
@@ -366,8 +388,65 @@ $("say-presets").innerHTML = SAY_PRESETS.map((p, i) => `<button data-i="${i}">${
 $("say-presets").onclick = (e) => { const b = e.target.closest("button"); if (b) sayIt(SAY_PRESETS[b.dataset.i]); };
 $("say-go").onclick = () => sayIt($("say-in").value);
 
+// ----- party mode: start/skip/stop, play a song by tapping it, add or remove songs -----
+let partyAt = 0, partyKey = null;
+async function loadParty(force) {
+  if (!force && Date.now() - partyAt < 6000) return;
+  partyAt = Date.now();
+  let r;
+  try { r = await api("/api/voicebox/party"); } catch (e) { return; }
+  if (!r.ok) { $("party-now").textContent = r.error || "Can't reach the voicebox."; return; }
+  $("party-now").textContent = r.now ? "Now playing: " + r.now : "Lights, TV and a song.";
+  const key = r.songs.map((s) => s.id).join();
+  if (key === partyKey) return;
+  partyKey = key;
+  $("party-count").textContent = r.songs.length;
+  $("party-list").innerHTML = r.songs.map((s) => `<div class="p-song"><button class="try" data-id="${s.id}"><span>${esc(s.title)}</span></button><button class="p-x" data-x="${s.id}" aria-label="Remove ${esc(s.title)}">✕</button></div>`).join("");
+}
+async function partyDo(path, body, okMsg) {
+  try {
+    const r = await api(path, { method: "POST", body: JSON.stringify(body) });
+    $("party-msg").textContent = r.ok ? (okMsg || "") : (r.error || "Didn't work");
+    return r;
+  } catch (e) { if (e.message !== "locked") $("party-msg").textContent = "Didn't work"; return {}; }
+}
+$("party-btns").onclick = async (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  flash(b);
+  await partyDo("/api/voicebox/party", { action: b.dataset.a }, b.dataset.a === "stop" ? "Party's over." : "On it. Give the TV a few seconds.");
+  loadParty(true);
+};
+$("party-list").onclick = async (e) => {
+  const x = e.target.closest(".p-x"), p = e.target.closest(".try");
+  if (x) {
+    if (!x.dataset.sure) { x.dataset.sure = "1"; x.textContent = "Remove?"; setTimeout(() => { delete x.dataset.sure; x.textContent = "✕"; }, 3000); return; }
+    await partyDo("/api/voicebox/party/remove", { id: x.dataset.x }, "Removed.");
+    return loadParty(true);
+  }
+  if (p) {
+    p.classList.add("sent"); setTimeout(() => p.classList.remove("sent"), 4000);
+    await partyDo("/api/voicebox/party", { action: "start", id: p.dataset.id }, "On it. Give the TV a few seconds.");
+    loadParty(true);
+  }
+};
+$("party-find").onclick = async () => {
+  const q = $("party-q").value.trim(); if (!q) return;
+  $("party-results").innerHTML = ""; $("party-msg").textContent = "Searching…";
+  const r = await partyDo("/api/voicebox/party/search", { q }, " ");
+  const list = r.results || [];
+  if (r.ok && !list.length) $("party-msg").textContent = "Nothing found. Try adding the artist.";
+  $("party-results").innerHTML = list.map((v) => `<div class="p-song"><div class="tip"><b>${esc(v.title)}</b><small>${esc([v.channel, v.length].filter(Boolean).join(" · "))}</small></div><button class="p-x" data-add="${esc(v.id)}" data-title="${esc(v.title)}">Add</button></div>`).join("");
+};
+$("party-q").addEventListener("keydown", (e) => { if (e.key === "Enter") $("party-find").click(); });
+$("party-results").onclick = async (e) => {
+  const b = e.target.closest("[data-add]"); if (!b) return;
+  const title = b.dataset.title.replace(/\s*[\(\[][^)\]]*[\)\]]/g, "").replace(/\s+/g, " ").trim() || b.dataset.title;
+  const r = await partyDo("/api/voicebox/party/add", { id: b.dataset.add, title }, "Added: " + title);
+  if (r.ok) { $("party-results").innerHTML = ""; $("party-q").value = ""; loadParty(true); }
+};
+
 // ----- voicebox guide: tap a phrase and the voicebox answers as if you'd said it out loud -----
-const GUIDE = [["The button", [{"t": "Hold, talk, let go", "d": "Ask or tell it anything. Follow-up questions work for a few minutes."}, {"t": "Double-tap", "d": "Morning briefing: weather, calendar, Pacers and Colts."}, {"t": "Triple-tap", "d": "A random surprise."}, {"t": "Press once while an alarm rings", "d": "Stops the alarm."}, {"t": "Hold 10 seconds without talking", "d": "Try it."}]], ["Things to ask", [{"h": "Tap to hear"}, {"s": "What's the weather today?"}, {"s": "Did the Colts win?"}, {"s": "What's on the calendar this weekend?"}, {"s": "What recipes do we have?"}, {"s": "What timers are running?"}, {"s": "What reminders do I have?"}, {"s": "Turn it up."}, {"s": "Turn it down."}, {"h": "Say these yourself"}, {"t": "Lights", "d": "\"Turn off the living room.\" \"Set our room to 30 percent.\" \"Movie scene.\" \"All off.\""}, {"t": "TVs", "d": "\"Turn on the living room TV.\" \"Mute the bedroom TV.\""}, {"t": "Timers", "d": "\"Set a 12 minute pasta timer.\" \"Cancel the pasta timer.\""}, {"t": "Recipes", "d": "\"Show the chicken tortilla soup recipe.\""}, {"t": "Calendar", "d": "\"Add dinner with Mom Friday at 6.\" \"Delete the dentist appointment.\""}, {"t": "Reminders", "d": "\"Remind me in 20 minutes to flip the laundry.\""}, {"t": "Alarms", "d": "\"Wake me up at 7.\" It rings until you press the button."}, {"t": "Memory", "d": "\"Remember the spare key is in the junk drawer.\" Later: \"Where's the spare key?\""}, {"t": "Tablet note", "d": "\"Put 'back at 5' on the tablet.\""}, {"t": "Quiet hours", "d": "It talks more quietly between 10pm and 7am."}]], ["Voices & modes", [{"t": "A mode stays on until you switch back", "d": "Tap one, then ask it something with the button."}, {"s": "Sass mode on.", "d": "Helpful, but with attitude."}, {"s": "Vulgar mode on.", "d": "Same answers, sailor mouth."}, {"s": "Hype mode on.", "d": "Everything is the greatest play ever."}, {"s": "Butler mode on.", "d": "\"Very good, sir.\""}, {"s": "Drill sergeant mode on.", "d": "Barks every answer."}, {"s": "Trickster mode on.", "d": "Riddles and mischief."}, {"s": "Ashton mode on.", "d": "Answers in Ashton's voice."}, {"s": "Normal mode.", "d": "Back to the usual voice."}]], ["🤫 Secret phrases (spoilers!)", [{"h": "Call and response"}, {"s": "O-H!"}, {"s": "Go Bucks!"}, {"s": "Boom baby!"}, {"s": "Hoo hoo hoo!"}, {"s": "Go Colts!"}, {"s": "Marco!"}, {"s": "I love you."}, {"s": "Knock knock.", "d": "You'll need the button for the rest of the joke."}, {"s": "What do you think about Michigan?"}, {"h": "Just ask"}, {"s": "Are you listening to us?"}, {"s": "Who's the best boyfriend?"}, {"s": "What's the meaning of life?"}, {"s": "Who's right?", "d": "Settles an argument, with total confidence."}, {"s": "Who's cooking tonight?"}, {"s": "Is it wine o'clock?"}, {"s": "Tell me a secret."}, {"s": "Do you know who I am?"}, {"s": "Did I lock the door?"}, {"s": "Mirror, mirror on the wall."}, {"s": "Open the pod bay doors."}, {"s": "Good bot."}, {"s": "Shut up."}, {"s": "Hey Siri."}, {"h": "It does something"}, {"s": "Red alert!", "d": "Loud, and flashes the lights."}, {"s": "Movie time.", "d": "Sets the Movie light scene."}, {"s": "What's for dinner?", "d": "Picks a random recipe and shows it on the tablet."}, {"s": "Goodnight, voicebox.", "d": "Turns all the lights off."}, {"s": "The Pacers lost.", "d": "Dims the lights for ten seconds."}, {"s": "Drumroll please."}, {"s": "It's too quiet in here."}, {"s": "Self destruct."}, {"s": "Let's party!", "d": "Party lights, living room TV on, and a random party song. Or name one: \"Let's party to Uptown Funk.\""}, {"s": "Next song.", "d": "Skips to another party song."}, {"s": "Party's over.", "d": "TV off, lights back to normal."}, {"h": "Games"}, {"s": "Rock, paper, scissors. I throw rock.", "d": "It keeps score."}, {"s": "Magic 8 ball, will the Colts win the Super Bowl?"}, {"s": "Roll a d20."}, {"s": "Let's play Simon says.", "d": "For 5 minutes it only obeys \"Simon says…\""}, {"h": "Special days"}, {"t": "Birthdays, your anniversary and holidays", "d": "It greets you the first time you talk to it that day."}]]];
+const GUIDE = [["The button", [{"t": "Hold, talk, let go", "d": "Ask or tell it anything. Follow-up questions work for a few minutes."}, {"t": "Double-tap", "d": "Morning briefing: weather, calendar, Pacers and Colts."}, {"t": "Triple-tap", "d": "A random surprise."}, {"t": "Press once while an alarm rings", "d": "Stops the alarm."}, {"t": "Hold 10 seconds without talking", "d": "Try it."}]], ["Things to ask", [{"h": "Tap to hear"}, {"s": "What's the weather today?"}, {"s": "Did the Colts win?"}, {"s": "What's on the calendar this weekend?"}, {"s": "What recipes do we have?"}, {"s": "What timers are running?"}, {"s": "What reminders do I have?"}, {"s": "Turn it up."}, {"s": "Turn it down."}, {"h": "Say these yourself"}, {"t": "Lights", "d": "\"Turn off the living room.\" \"Set our room to 30 percent.\" \"Movie scene.\" \"All off.\""}, {"t": "TVs", "d": "\"Turn on the living room TV.\" \"Mute the bedroom TV.\""}, {"t": "Timers", "d": "\"Set a 12 minute pasta timer.\" \"Cancel the pasta timer.\" It says so out loud when any timer finishes."}, {"t": "Cooking along", "d": "With a recipe open on the tablet: \"Start the recipe.\" \"Next step.\" \"Repeat that.\" \"Go back.\" \"Start the timer for this step.\" The tablet highlights the step. Steps with a time in them also get a tap-to-start timer on the tablet."}, {"t": "Recipes", "d": "\"Show the chicken tortilla soup recipe.\""}, {"t": "Calendar", "d": "\"Add dinner with Mom Friday at 6.\" \"Delete the dentist appointment.\""}, {"t": "Reminders", "d": "\"Remind me in 20 minutes to flip the laundry.\""}, {"t": "Alarms", "d": "\"Wake me up at 7.\" It rings until you press the button."}, {"t": "Memory", "d": "\"Remember the spare key is in the junk drawer.\" Later: \"Where's the spare key?\""}, {"t": "Tablet note", "d": "\"Put 'back at 5' on the tablet.\""}, {"t": "Quiet hours", "d": "It talks more quietly between 10pm and 7am."}]], ["Voices & modes", [{"t": "A mode stays on until you switch back", "d": "Tap one, then ask it something with the button."}, {"s": "Sass mode on.", "d": "Helpful, but with attitude."}, {"s": "Vulgar mode on.", "d": "Same answers, sailor mouth."}, {"s": "Hype mode on.", "d": "Everything is the greatest play ever."}, {"s": "Butler mode on.", "d": "\"Very good, sir.\""}, {"s": "Drill sergeant mode on.", "d": "Barks every answer."}, {"s": "Trickster mode on.", "d": "Riddles and mischief."}, {"s": "Ashton mode on.", "d": "Answers in Ashton's voice."}, {"s": "Normal mode.", "d": "Back to the usual voice."}]], ["🤫 Secret phrases (spoilers!)", [{"h": "Call and response"}, {"s": "O-H!"}, {"s": "Go Bucks!"}, {"s": "Boom baby!"}, {"s": "Hoo hoo hoo!"}, {"s": "Go Colts!"}, {"s": "Marco!"}, {"s": "I love you."}, {"s": "Knock knock.", "d": "You'll need the button for the rest of the joke."}, {"s": "What do you think about Michigan?"}, {"h": "Just ask"}, {"s": "Are you listening to us?"}, {"s": "Who's the best boyfriend?"}, {"s": "What's the meaning of life?"}, {"s": "Who's right?", "d": "Settles an argument, with total confidence."}, {"s": "Who's cooking tonight?"}, {"s": "Is it wine o'clock?"}, {"s": "Tell me a secret."}, {"s": "Do you know who I am?"}, {"s": "Did I lock the door?"}, {"s": "Mirror, mirror on the wall."}, {"s": "Open the pod bay doors."}, {"s": "Good bot."}, {"s": "Shut up."}, {"s": "Hey Siri."}, {"h": "It does something"}, {"s": "Red alert!", "d": "Loud, and flashes the lights."}, {"s": "Movie time.", "d": "Sets the Movie light scene."}, {"s": "What's for dinner?", "d": "Picks a random recipe and shows it on the tablet."}, {"s": "Goodnight, voicebox.", "d": "Turns all the lights off."}, {"s": "The Pacers lost.", "d": "Dims the lights for ten seconds."}, {"s": "Drumroll please."}, {"s": "It's too quiet in here."}, {"s": "Self destruct."}, {"s": "Let's party!", "d": "Party lights, living room TV on, and a random party song. Or name one: \"Let's party to Uptown Funk.\""}, {"s": "Next song.", "d": "Skips to another party song."}, {"s": "Party's over.", "d": "TV off, lights back to normal."}, {"h": "Games"}, {"s": "Rock, paper, scissors. I throw rock.", "d": "It keeps score."}, {"s": "Magic 8 ball, will the Colts win the Super Bowl?"}, {"s": "Roll a d20."}, {"s": "Let's play Simon says.", "d": "For 5 minutes it only obeys \"Simon says…\""}, {"h": "Special days"}, {"t": "Birthdays, your anniversary and holidays", "d": "It greets you the first time you talk to it that day."}]]];
 $("guide").innerHTML = GUIDE.map(([title, items]) => `<details class="rec-group"><summary>${esc(title)}</summary>` + items.map((it) =>
   it.h ? `<div class="guide-h">${esc(it.h)}</div>`
   : it.s ? `<button class="try" data-s="${esc(it.s)}"><span>“${esc(it.s)}”${it.d ? `<small>${esc(it.d)}</small>` : ""}</span></button>`
@@ -468,6 +547,7 @@ async function refresh() {
     if (!scenesLoaded) { await loadScenes(); scenesLoaded = true; }
     if (!recipesLoaded) { loadRecipes(); recipesLoaded = true; }
     await Promise.all([loadRooms(), loadTimers(), loadNote()]);
+    if (document.querySelector('.view[data-view="party"]').classList.contains("on")) loadParty();
   } catch {}
 }
 setInterval(() => { if (!$("app").hidden && document.visibilityState === "visible") refresh(); }, 3000);
