@@ -403,7 +403,8 @@ async function loadVbSettings(force) {
   let r;
   try { r = await api("/api/voicebox/settings"); } catch (e) { return; }
   if (!r.ok) { $("vb-settings").innerHTML = `<div class="tip"><small>${esc(r.error || "Can't reach the voicebox.")}</small></div>`; return; }
-  $("vb-settings").innerHTML = VB_SET.map(([k, t, d]) => `<button class="try set ${r[k] ? "" : "off"}" data-k="${k}" data-on="${r[k] ? 1 : 0}"><span>${t}<small>${d}</small></span><b>${r[k] ? "On" : "Off"}</b></button>`).join("");
+  $("vb-settings").innerHTML = VB_SET.map(([k, t, d]) => `<button class="try set ${r[k] ? "" : "off"}" data-k="${k}" data-on="${r[k] ? 1 : 0}"><span>${t}<small>${d}</small></span><b>${r[k] ? "On" : "Off"}</b></button>`).join("")
+    + (r.usage ? `<div class="tip"><b>Usage this month</b><small>${esc(r.usage)}</small></div>` : "");
 }
 $("vb-settings").onclick = async (e) => {
   const b = e.target.closest("[data-k]"); if (!b) return;
