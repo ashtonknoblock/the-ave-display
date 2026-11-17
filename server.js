@@ -40,7 +40,7 @@ function voicebox(p, method, body, timeoutMs = 8000) {
 }
 let partyNow = null;
 // When any timer finishes, the voicebox says so out loud.
-timers.onDone((t) => voicebox("/api/say", "POST", { text: t.say || timers.spoken(t) }).catch(() => {}));
+timers.onDone((t) => voicebox("/api/say", "POST", { text: t.say || timers.spoken(t), kind: "timer" }).catch(() => {}));
 
 function isLocal(req) {
   const a = req.socket.remoteAddress || "";
@@ -176,7 +176,7 @@ const server = http.createServer((req, res) => {
   if (url.pathname.startsWith("/api/voicebox/")) {
     (async () => {
       const sub = url.pathname.slice("/api/voicebox".length);
-      if (!/^\/(say|ask|party|party\/(search|add|remove))$/.test(sub)) return sendJson(res, 404, { error: "Not found" });
+      if (!/^\/(say|ask|settings|party|party\/(search|add|remove))$/.test(sub)) return sendJson(res, 404, { error: "Not found" });
       const b = req.method === "POST" ? await readBody(req) : null;
       if (sub === "/say" || sub === "/ask") {
         b.text = String(b.text || "").trim().slice(0, 300);

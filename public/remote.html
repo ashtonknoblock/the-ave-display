@@ -96,6 +96,7 @@
     .try::after { content: "▶"; color: var(--gold); flex: 0 0 auto; } .try.sent::after { content: "🔊"; } .try.fail::after { content: "⚠️"; }
     .try small, .tip small { display: block; color: var(--muted); margin-top: 3px; font-size: 13px; }
     .tip { padding: 10px 14px; margin-bottom: 8px; font-size: 15px; } .guide-h { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; margin: 14px 4px 8px; }
+    .try.set::after { content: none; } .try.set b { color: var(--gold); flex: 0 0 auto; } .try.set.off b { color: var(--muted); }
     .p-row { display: flex; gap: 8px; margin-bottom: 10px; }
     .p-row input { flex: 1; min-width: 0; font: inherit; font-size: 16px; padding: 12px; border-radius: 14px; border: 1px solid #2a3340; background: #121821; color: var(--text); }
     .p-row button { font: inherit; font-weight: 600; border: 0; border-radius: 14px; padding: 0 18px; background: var(--gold); color: #0d1117; }
@@ -175,6 +176,9 @@
       <textarea id="say-in" rows="3" placeholder="Dinner's ready!"></textarea>
       <button class="big" id="say-go">🔊 Say it</button>
       <div class="err" id="say-msg"></div>
+      <h1 style="margin-top:28px">Voicebox settings</h1>
+      <div class="sub">What it does on its own. Reminders and alarms you set always speak.</div>
+      <div id="vb-settings"></div>
       <h1 style="margin-top:28px">Voicebox guide</h1>
       <div class="sub">Everything the little speaker with the big button can do. Tap anything with a ▶ and it answers out loud, just like you'd said it.</div>
       <div id="guide"></div>
@@ -388,6 +392,25 @@ $("say-presets").innerHTML = SAY_PRESETS.map((p, i) => `<button data-i="${i}">${
 $("say-presets").onclick = (e) => { const b = e.target.closest("button"); if (b) sayIt(SAY_PRESETS[b.dataset.i]); };
 $("say-go").onclick = () => sayIt($("say-in").value);
 
+// ----- voicebox settings: switches for what it does without being asked -----
+const VB_SET = [["game_alerts", "Game score announcements", "Says the final score when the Pacers or Colts finish."],
+  ["game_lights", "Game light effects", "Flashes team colors on a win, dims the lights on a loss."],
+  ["timer_voice", "Timer announcements", "Says out loud when a timer finishes. The tablet still rings."]];
+let vbAt = 0;
+async function loadVbSettings(force) {
+  if (!force && Date.now() - vbAt < 10000) return;
+  vbAt = Date.now();
+  let r;
+  try { r = await api("/api/voicebox/settings"); } catch (e) { return; }
+  if (!r.ok) { $("vb-settings").innerHTML = `<div class="tip"><small>${esc(r.error || "Can't reach the voicebox.")}</small></div>`; return; }
+  $("vb-settings").innerHTML = VB_SET.map(([k, t, d]) => `<button class="try set ${r[k] ? "" : "off"}" data-k="${k}" data-on="${r[k] ? 1 : 0}"><span>${t}<small>${d}</small></span><b>${r[k] ? "On" : "Off"}</b></button>`).join("");
+}
+$("vb-settings").onclick = async (e) => {
+  const b = e.target.closest("[data-k]"); if (!b) return;
+  try { await api("/api/voicebox/settings", { method: "POST", body: JSON.stringify({ [b.dataset.k]: b.dataset.on !== "1" }) }); } catch (err) {}
+  loadVbSettings(true);
+};
+
 // ----- party mode: start/skip/stop, play a song by tapping it, add or remove songs -----
 let partyAt = 0, partyKey = null;
 async function loadParty(force) {
@@ -548,6 +571,7 @@ async function refresh() {
     if (!recipesLoaded) { loadRecipes(); recipesLoaded = true; }
     await Promise.all([loadRooms(), loadTimers(), loadNote()]);
     if (document.querySelector('.view[data-view="party"]').classList.contains("on")) loadParty();
+    if (document.querySelector('.view[data-view="note"]').classList.contains("on")) loadVbSettings();
   } catch {}
 }
 setInterval(() => { if (!$("app").hidden && document.visibilityState === "visible") refresh(); }, 3000);
