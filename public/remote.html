@@ -8,6 +8,9 @@
   <meta name="apple-mobile-web-app-title" content="The Ave" />
   <meta name="theme-color" id="theme-color" content="#f4efe6" />
   <script>try { var t = localStorage.getItem("ave-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}</script>
+  <link rel="manifest" href="/remote.webmanifest" />
+  <link rel="apple-touch-icon" href="/remote-icon-180.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <title>The Ave</title>
   <style>
 :root{color-scheme:light;--ink:#14151a;--muted:rgba(20,21,26,.6);--g1:rgba(255,255,255,.58);--g2:rgba(255,255,255,.36);--rim:rgba(255,255,255,.8);--fill:rgba(255,255,255,.5);--dim:rgba(20,21,26,.07);--track:rgba(20,21,26,.14);--drop:0 10px 30px -12px rgba(60,40,90,.3);--base:#eee9f3;--b1:#ffc48a;--b2:#c9a8ff;--b3:#9fd8ff;--b4:#ffb3d0;--amber:#e0932a;--blue:#3b82f6;--violet:#8b5cf6;--green:#1faa6b;--pink:#ec4899;--red:#e5484d}
@@ -70,7 +73,7 @@ button.big,.p-row button,#go{display:block;width:100%;padding:15px;border-radius
 #h-tleft{font-size:26px;font-weight:700;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
 .small{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #h-song{font-size:20px;font-weight:700;letter-spacing:-.02em;line-height:1.15;margin-top:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.mini{display:flex;gap:8px;margin-top:12px}.mini button{flex:1}
+.mini{display:flex;gap:8px;margin-top:12px}.mini button{flex:1;white-space:nowrap}
 .eq{display:flex;gap:2px;align-items:flex-end;height:13px;color:var(--violet)}.eq b{width:3px;background:currentColor;border-radius:2px;animation:eq 1s ease-in-out infinite alternate}.eq b:nth-child(1){height:60%}.eq b:nth-child(2){height:100%;animation-delay:-.4s}.eq b:nth-child(3){height:40%;animation-delay:-.7s}@keyframes eq{to{height:25%}}
 #h-favs{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
 .fav{border-radius:22px;padding:13px 2px 11px;font-size:12.5px;font-weight:600;margin:0}
@@ -145,6 +148,26 @@ summary::after{content:"";margin-left:auto;width:8px;height:8px;border-right:2px
 .tabs button{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0 6px;font-size:10.5px;font-weight:600;color:var(--muted)}
 .tabs svg{width:22px;height:22px}.tabs button.on{color:var(--ink)}.tabs button.on svg{color:var(--amber)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* ---- round 2: game, cooking, next up, editable favorites, modes, shopping list ---- */
+h2 button{float:right;font-size:13px;font-weight:600;color:var(--blue);padding:0 2px}
+.g-row{display:flex;align-items:center;gap:10px;margin-top:10px;font-variant-numeric:tabular-nums}.g-row span{font-weight:600;font-size:15px;width:44px}.g-row span:last-child{text-align:right}
+.g-row b{font-size:28px;font-weight:700;letter-spacing:-.03em}.g-row em{flex:1;text-align:center;font-style:normal;font-size:13px;color:var(--muted)}.g-row em.live{color:var(--red);font-weight:700}
+#h-cook-title{display:block;font-size:19px;font-weight:700;letter-spacing:-.02em;margin-top:8px}
+#h-cook-step{margin-top:8px;font-size:15px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.n-row{display:flex;gap:12px;align-items:baseline;margin-top:10px}.n-row span{flex:0 0 122px;white-space:nowrap;font-size:13px;color:var(--muted);font-weight:500}.n-row b{flex:1;min-width:0;font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#h-favs.editing .fav{animation:wig .32s ease-in-out infinite alternate}#h-favs.editing .fav:nth-child(2n){animation-delay:-.16s}@keyframes wig{from{transform:rotate(-1.6deg)}to{transform:rotate(1.6deg)}}
+#sheet{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.35);display:flex;align-items:flex-end;animation:fade .2s}@keyframes fade{from{opacity:0}}
+.sheet-card{width:100%;max-width:560px;margin:0 auto;border-radius:30px 30px 0 0;padding:18px 16px calc(env(safe-area-inset-bottom) + 18px);max-height:76vh;overflow:auto;animation:rise .34s cubic-bezier(.2,.9,.3,1)}@keyframes rise{from{transform:translateY(60%)}}
+.sheet-card>b{display:block;font-size:18px;margin:0 2px 12px}#sheet-list{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}#sheet-list .fav{background:var(--fill);border:1px solid var(--rim)}
+#sheet-x{display:block;width:100%;margin-top:14px;padding:14px;border-radius:18px;background:var(--fill);border:1px solid var(--rim);font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}.chips button{padding:9px 14px;border-radius:99px;background:var(--fill);border:1px solid var(--rim);box-shadow:inset 0 1px 0 var(--rim);font-size:14px;font-weight:600}.chips button.on{background:var(--ink);color:var(--base);border-color:transparent}
+#list-items:not(:empty){border-radius:22px;overflow:hidden;background:var(--fill);border:1px solid var(--rim);margin:6px 0 12px}
+.li{display:flex;align-items:center;border-top:1px solid var(--dim)}.li:first-child{border-top:0}
+.li>button:first-child{flex:1;min-width:0;display:flex;align-items:center;gap:12px;text-align:left;padding:13px 16px;font-size:16px}
+.li i{flex:0 0 auto;width:22px;height:22px;border-radius:50%;border:2px solid var(--muted);transition:background .2s,border-color .2s}
+.li.done i{background:var(--green);border-color:var(--green);box-shadow:inset 0 0 0 4px var(--g1)}.li.done span{text-decoration:line-through;color:var(--muted)}
+#list-clear{display:block;margin:0 auto;padding:10px 16px;border-radius:99px;background:var(--fill);border:1px solid var(--rim);font-size:14px;font-weight:600}
+.whole{grid-template-columns:repeat(auto-fit,minmax(70px,1fr))}
 </style>
 </head>
 <body>
@@ -165,13 +188,16 @@ summary::after{content:"";margin-left:auto;width:8px;height:8px;border-right:2px
       <div class="card" id="h-lights"><div class="lab" data-go="lights"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1.1 2.2h5c.1-1 .5-1.7 1.1-2.2A6 6 0 0 0 12 3z"/></svg>Lights</div><button class="pillbtn" id="h-alloff">All off</button>
         <div id="h-count">–</div><div id="h-rooms"></div></div>
       <div class="h-two"><div class="card" id="h-timer" data-go="kitchen:timers" hidden><div class="lab">Timer</div><div class="tm"><div class="ring" id="h-ring"></div><div style="min-width:0"><div id="h-tleft"></div><div class="small" id="h-tlabel"></div></div></div><div class="small" id="h-tmore" style="margin-top:10px"></div></div><div class="card" id="h-play" hidden><div class="lab"><span class="eq"><b></b><b></b><b></b></span>Playing</div><div id="h-song" data-go="voicebox:party"></div><div class="mini"><button class="pillbtn" data-pa="next">Next</button><button class="pillbtn" data-pa="stop">Stop</button></div></div></div>
-      <h2>Favorites</h2>
-      <div id="h-favs">
+      <h2>Favorites <button id="fav-edit">Edit</button></h2>
+      <div id="h-favs"></div><div hidden>
         <button class="fav glass" data-fav="bedtime"><span style="background:var(--blue)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg></span>Bedtime</button>
         <button class="fav glass" data-fav="all-on"><span style="background:var(--amber)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg></span>All on</button>
         <button class="fav glass" data-fav="dinner"><span style="background:var(--green)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3h-5l-4.5 4v-4H7a3 3 0 0 1-3-3V6z"/></svg></span>Dinner!</button>
         <button class="fav glass" data-fav="party"><span style="background:var(--pink)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3l1.9 5.1L18 10l-5.1 1.9L11 17l-1.9-5.1L4 10l5.1-1.9L11 3z"/></svg></span><em style="font-style:normal">Party</em></button>
       </div>
+      <div class="card" id="h-game" hidden><div class="lab">Game today</div><div id="h-game-body"></div></div>
+      <div class="card" id="h-cook" hidden><div class="lab" data-go="kitchen:recipes">Cooking</div><b id="h-cook-title"></b><div class="small" id="h-cook-n"></div><div id="h-cook-step"></div><div class="mini"><button class="pillbtn" data-ck="back">Back</button><button class="pillbtn" data-ck="timer" hidden></button><button class="pillbtn" data-ck="next">Next step</button></div></div>
+      <div class="card" id="h-next" hidden><div class="lab">Next up</div><div id="h-next-body"></div></div>
       <div id="h-tvs"></div>
     </section>
     <section class="view" data-view="lights">
@@ -206,7 +232,7 @@ summary::after{content:"";margin-left:auto;width:8px;height:8px;border-right:2px
       <textarea id="rec-steps" rows="6" placeholder="Steps — one per line"></textarea>
       <button class="big" id="rec-add">Save recipe</button>
     </section>
-    <section class="view" data-view="talk"><h2>Say it out loud</h2>
+    <section class="view" data-view="talk"><h2>Voice mode</h2><div class="chips" id="mode-chips"></div><h2>Say it out loud</h2>
       <div class="sub" style="margin-top:0">Plays on the voicebox speaker.</div>
       <div class="presets" id="say-presets" style="grid-template-columns:repeat(2,1fr)"></div>
       <textarea id="say-in" rows="3" placeholder="Dinner's ready!"></textarea>
@@ -241,6 +267,14 @@ summary::after{content:"";margin-left:auto;width:8px;height:8px;border-right:2px
       <div class="sub" style="margin-top:0">Everything the little speaker with the big button can do. Tap anything with a ▶ and it answers out loud, just like you'd said it.</div>
       <div id="guide"></div>
     </section>
+    <section class="view" data-view="list">
+      <div class="sub" style="margin-top:0">Shared with both phones. Shows on the tablet while there's something to get.</div>
+      <div class="p-row"><input type="text" id="list-in" placeholder="Eggs, milk, …" autocomplete="off" enterkeyhint="done" /><button id="list-add">Add</button></div>
+      <div id="list-items"></div>
+      <div class="empty" id="list-empty">Nothing on the list.</div>
+      <button id="list-clear" hidden>Clear checked</button>
+    </section>
+    <div id="sheet" hidden><div class="sheet-card glass"><b>Pick a favorite</b><div id="sheet-list"></div><button id="sheet-x">Cancel</button></div></div>
   </div>
 
   <nav class="tabs" id="tabs" hidden><button data-v="home" class=on><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1v-8z"/></svg>Home</button><button data-v="lights"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1.1 2.2h5c.1-1 .5-1.7 1.1-2.2A6 6 0 0 0 12 3z"/></svg>Lights</button><button data-v="tv"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="12" rx="2.5"/><path d="M8 21h8"/></svg>TV</button><button data-v="kitchen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5a1.5 1.5 0 0 0 0 3H19M9 7.5h6M9 11h4"/></svg>Kitchen</button><button data-v="voicebox"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>Voicebox</button></nav>
@@ -264,8 +298,8 @@ $("go").onclick = async () => {
 $("pin").addEventListener("keydown", (e) => { if (e.key === "Enter") $("go").click(); });
 
 // ----- tabs: five tabs; Kitchen and Voicebox each hold a few pages picked with the switch at the top -----
-const GROUPS = { home: ["home"], lights: ["lights"], tv: ["tv"], kitchen: ["timers", "recipes"], voicebox: ["talk", "party", "guide"] };
-const SUB_NAME = { timers: "Timers", recipes: "Recipes", talk: "Talk", party: "Party", guide: "Guide" };
+const GROUPS = { home: ["home"], lights: ["lights"], tv: ["tv"], kitchen: ["timers", "recipes", "list"], voicebox: ["talk", "party", "guide"] };
+const SUB_NAME = { timers: "Timers", recipes: "Recipes", list: "List", talk: "Talk", party: "Party", guide: "Guide" };
 const TAB_ORDER = Object.keys(GROUPS), subAt = { kitchen: "timers", voicebox: "talk" }, scrollAt = {};
 let curTab = "home", curView = "home";
 function go(tab, sub) {
@@ -323,7 +357,7 @@ const flash = (b) => { b.classList.add("flash"); setTimeout(() => b.classList.re
 async function loadScenes() {
   const { builtIn, hue, holiday } = await api("/api/hue/scenes");
   holidayScenes = holiday || [];
-  $("scenes").innerHTML = builtIn.map((x) => `<button class="scene" data-s="${x.id}"><span>${x.icon}</span>${esc(x.name)}</button>`).join("");
+  $("scenes").innerHTML = builtIn.filter((x) => x.id !== "movie").map((x) => `<button class="scene" data-s="${x.id}"><span>${x.icon}</span>${esc(x.name)}</button>`).join("");
   wireScenes($("scenes"));
   markLive();
   // one button per scene name (Hue keeps a copy per room)
@@ -669,7 +703,8 @@ async function refresh() {
     await Promise.all([loadRooms(), loadTimers(), loadNote()]);
     if (curView === "party") loadParty();
     if (curView === "guide") loadVbSettings();
-    if (curView === "home") { loadHomeNow(); loadHomeTvs(); }
+    if (curView === "home") { loadHomeNow(); loadHomeTvs(); loadCook(); loadGames(); loadNext(); }
+    if (curView === "list") loadList();
   } catch {}
 }
 setInterval(() => { if (!$("app").hidden && document.visibilityState === "visible") refresh(); }, 3000);
@@ -744,28 +779,202 @@ $("h-tvs").onclick = async (e) => {
   try { await fetch(`/api/tv/${htv}/${act}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ arg: "" }) }); } catch (err) {}
   if (act !== "mute") setTimeout(() => loadHomeTvs(true), 4500);
 };
-$("h-favs").onclick = async (e) => {
-  const b = e.target.closest("[data-fav]"); if (!b) return;
-  const f = b.dataset.fav;
-  if (f === "bedtime" || f === "all-on") { toast(f === "bedtime" ? "Bedtime" : "All on"); return homeScene(f, b); }
-  if (f === "dinner") {
-    flash(b);
-    let r = {}; try { r = await api("/api/voicebox/say", { method: "POST", body: JSON.stringify({ text: "Dinner's ready!" }) }); } catch (err) {}
-    return toast(r.ok ? "Said it out loud" : (r.error || "Didn't work"));
-  }
-  if (f === "party") { // starts the TV and music, so it asks once before going
-    const lab = b.querySelector("em");
-    if (!b.dataset.sure) { b.dataset.sure = "1"; lab.textContent = "Start?"; setTimeout(() => { delete b.dataset.sure; lab.textContent = "Party"; }, 3000); return; }
-    delete b.dataset.sure; lab.textContent = "Party"; flash(b); confetti(b);
-    const r = await partyDo("/api/voicebox/party", { action: "start" });
-    toast(r.ok ? "On it. Give the TV a few seconds." : (r.error || "Didn't work"));
-    setTimeout(loadHomeNow, 5000);
-  }
-};
 document.querySelector('.view[data-view="home"]').addEventListener("click", (e) => {
   const g = e.target.closest("[data-go]"); if (!g || e.target.closest("button")) return;
   const [tab, sub] = g.dataset.go.split(":"); go(tab, sub);
 });
+// ===== Home, round 2: game score, cooking along, next on the calendar, favorites you can change =====
+const IC = {
+  moon: '<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/>',
+  power: '<path d="M12 3v9M6.3 6.8a8 8 0 1 0 11.4 0"/>',
+  door: '<path d="M14 4h4a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-4M10 16l4-4-4-4M14 12H4"/>',
+  star: '<path d="M11 3l1.9 5.1L18 10l-5.1 1.9L11 17l-1.9-5.1L4 10l5.1-1.9L11 3z"/>',
+  chat: '<path d="M4 6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3h-5l-4.5 4v-4H7a3 3 0 0 1-3-3V6z"/>',
+  heart: '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',
+  book: '<path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5a1.5 1.5 0 0 0 0 3H19M9 7.5h6M9 11h4"/>',
+  cart: '<path d="M3 4h2.5l2 11h10.5l2-8H6.5"/><circle cx="9" cy="19" r="1.5"/><circle cx="17" cy="19" r="1.5"/>',
+  clock: '<circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 2M9.5 3h5"/>',
+};
+const icon = (k) => `<svg viewBox="0 0 24 24" aria-hidden="true">${IC[k]}</svg>`;
+async function sayFav(text) {
+  let r = {}; try { r = await api("/api/voicebox/say", { method: "POST", body: JSON.stringify({ text }) }); } catch (err) {}
+  toast(r.ok ? "Said it out loud" : (r.error || "Didn't work"));
+}
+async function askFav(text) {
+  let r = {}; try { r = await api("/api/voicebox/ask", { method: "POST", body: JSON.stringify({ text }) }); } catch (err) {}
+  toast(r.ok ? "Sent to the voicebox" : (r.error || "Didn't work"));
+}
+async function leaveHome(b) { // lights off, and any TV that's on
+  homeScene("all-off", b); toast("Turning everything off");
+  let list = []; try { list = await api("/api/tv"); } catch (err) {}
+  for (const t of list) if (t.on) { try { await fetch(`/api/tv/${t.id}/off`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ arg: "" }) }); } catch (err) {} }
+  setTimeout(() => loadHomeTvs(true), 4500);
+}
+async function startParty(b) {
+  confetti(b);
+  const r = await partyDo("/api/voicebox/party", { action: "start" });
+  toast(r.ok ? "On it. Give the TV a few seconds." : (r.error || "Didn't work"));
+  setTimeout(loadHomeNow, 5000);
+}
+// sure: asks once before doing it, for the ones that would be annoying to set off by accident
+const FAVS = {
+  bedtime: { n: "Bedtime", i: "moon", c: "blue", run: (b) => { toast("Bedtime"); homeScene("bedtime", b); } },
+  leave: { n: "Leaving", i: "door", c: "red", sure: "Leave?", run: leaveHome },
+  dinner: { n: "Dinner!", i: "chat", c: "green", run: () => sayFav("Dinner's ready!") },
+  party: { n: "Party", i: "star", c: "pink", sure: "Start?", run: startParty },
+  "all-on": { n: "All on", i: "sun", c: "amber", run: (b) => { toast("All on"); homeScene("all-on", b); } },
+  "all-off": { n: "All off", i: "power", c: "violet", run: (b) => { toast("All off"); homeScene("all-off", b); } },
+  come: { n: "Come here", i: "chat", c: "blue", run: () => sayFav("Come here a sec!") },
+  togo: { n: "Time to go", i: "chat", c: "amber", run: () => sayFav("Time to go!") },
+  love: { n: "Love you", i: "heart", c: "pink", run: () => sayFav("Love you!") },
+  pick: { n: "Pick dinner", i: "book", c: "violet", run: () => askFav("What's for dinner?") },
+  list: { n: "Shopping", i: "cart", c: "green", run: () => go("kitchen", "list") },
+  timers: { n: "Timers", i: "clock", c: "blue", run: () => go("kitchen", "timers") },
+};
+let favs = ["bedtime", "leave", "dinner", "party"], favEdit = false, favSlot = -1, favHold = 0, favHeld = false;
+try { const f = JSON.parse(localStorage.getItem("ave-favs")); if (Array.isArray(f) && f.length === 4 && f.every((k) => FAVS[k])) favs = f; } catch {}
+const favBtn = (k, attr) => `<button class="fav glass" ${attr}><span style="background:var(--${FAVS[k].c})">${icon(FAVS[k].i)}</span><em style="font-style:normal">${FAVS[k].n}</em></button>`;
+function drawFavs() {
+  $("h-favs").innerHTML = favs.map((k, i) => favBtn(k, `data-slot="${i}"`)).join("");
+  $("h-favs").classList.toggle("editing", favEdit);
+  $("fav-edit").textContent = favEdit ? "Done" : "Edit";
+}
+function openPicker(slot) {
+  favSlot = slot;
+  $("sheet-list").innerHTML = Object.keys(FAVS).map((k) => favBtn(k, `data-pick="${k}"`)).join("");
+  $("sheet").hidden = false;
+}
+$("fav-edit").onclick = () => { favEdit = !favEdit; drawFavs(); if (favEdit) toast("Tap one to change it"); };
+$("h-favs").addEventListener("pointerdown", (e) => {
+  const b = e.target.closest("[data-slot]"); if (!b) return;
+  favHeld = false; clearTimeout(favHold);
+  favHold = setTimeout(() => { favHeld = true; openPicker(Number(b.dataset.slot)); }, 550);
+});
+["pointerup", "pointerleave", "pointercancel"].forEach((ev) => $("h-favs").addEventListener(ev, () => clearTimeout(favHold)));
+$("h-favs").addEventListener("contextmenu", (e) => e.preventDefault());
+$("h-favs").onclick = (e) => {
+  const b = e.target.closest("[data-slot]"); if (!b) return;
+  if (favHeld) { favHeld = false; return; }
+  if (favEdit) return openPicker(Number(b.dataset.slot));
+  const f = FAVS[favs[b.dataset.slot]], lab = b.querySelector("em");
+  if (f.sure && !b.dataset.sure) { b.dataset.sure = "1"; lab.textContent = f.sure; setTimeout(() => { delete b.dataset.sure; lab.textContent = f.n; }, 3000); return; }
+  delete b.dataset.sure; lab.textContent = f.n; flash(b); f.run(b);
+};
+$("sheet").onclick = (e) => {
+  const p = e.target.closest("[data-pick]");
+  if (p && favSlot >= 0) {
+    const k = p.dataset.pick, at = favs.indexOf(k);
+    if (at >= 0 && at !== favSlot) favs[at] = favs[favSlot]; // already on Home: swap places
+    favs[favSlot] = k;
+    try { localStorage.setItem("ave-favs", JSON.stringify(favs)); } catch {}
+    favEdit = false; drawFavs();
+  }
+  if (p || e.target.id === "sheet" || e.target.id === "sheet-x") $("sheet").hidden = true;
+};
+drawFavs();
+
+// Game score: only shows on a day the Pacers or Colts play
+let gamesAt = 0;
+async function loadGames() {
+  if (Date.now() - gamesAt < 30000) return;
+  gamesAt = Date.now();
+  let r; try { r = await api("/api/games"); } catch (e) { return; }
+  const g = (r && r.games) || [];
+  $("h-game").hidden = !g.length;
+  $("h-game-body").innerHTML = g.map((x) => {
+    const pre = x.state === "pre", mid = pre ? new Date(x.date).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : x.state === "post" ? "Final" : x.detail;
+    return `<div class="g-row"><span>${esc(x.away.abbr)}</span><b>${pre ? "" : esc(x.away.score)}</b><em class="${x.state === "in" ? "live" : ""}">${esc(mid)}</em><b>${pre ? "" : esc(x.home.score)}</b><span>${esc(x.home.abbr)}</span></div>`;
+  }).join("");
+}
+// Cooking along: shows the recipe that's open on the tablet, and moves through its steps
+let cook = { recipe: null, step: null };
+async function loadCook() {
+  let r; try { r = await api("/api/recipes/cook"); } catch (e) { return; }
+  cook = r && r.recipe ? r : { recipe: null, step: null };
+  drawCook();
+}
+function drawCook() {
+  const r = cook.recipe; $("h-cook").hidden = !r;
+  if (!r) return;
+  const going = cook.step != null, n = r.steps.length, t = going && r.times && r.times[cook.step];
+  $("h-cook-title").textContent = r.title;
+  $("h-cook-n").textContent = going ? `Step ${cook.step + 1} of ${n}` : `${n} steps`;
+  $("h-cook-step").textContent = going ? r.steps[cook.step] : "";
+  const [back, timer, next] = $("h-cook").querySelectorAll("[data-ck]");
+  back.hidden = !going || cook.step === 0;
+  timer.hidden = !t; if (t) timer.textContent = "⏲ " + t.replace(/ minutes?/, " min").replace(/ hours?/, " hr").replace(/ seconds?/, " sec");
+  next.hidden = going && cook.step >= n - 1;
+  next.textContent = going ? "Next step" : "Start cooking";
+}
+$("h-cook").onclick = async (e) => {
+  const b = e.target.closest("[data-ck]"); if (!b || !cook.recipe) return;
+  flash(b);
+  if (b.dataset.ck === "timer") {
+    let r = {}; try { r = await api("/api/recipes/cook/timer", { method: "POST", body: JSON.stringify({ step: cook.step }) }); } catch (err) {}
+    toast(r.ok ? "Timer started" : (r.error || "Didn't work")); return loadTimers();
+  }
+  const step = cook.step == null ? 0 : cook.step + (b.dataset.ck === "next" ? 1 : -1);
+  cook.step = Math.max(0, Math.min(cook.recipe.steps.length - 1, step)); drawCook();
+  try { await api("/api/recipes/cook", { method: "POST", body: JSON.stringify({ step: cook.step }) }); } catch (err) {}
+};
+// Next up: the next few things on your calendar
+let nextAt = 0;
+async function loadNext() {
+  if (Date.now() - nextAt < 600000) return;
+  nextAt = Date.now();
+  let r; try { r = await api("/api/events"); } catch (e) { nextAt = 0; return; }
+  const now = new Date(), day = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const items = (((r || {}).personal || {}).items || []).filter((e) => {
+    const s = new Date(e.start), end = e.end ? new Date(e.end) : e.allDay ? new Date(day(s) + 86400000) : new Date(s.getTime() + 3600000);
+    return end > now;
+  }).sort((a, b) => new Date(a.start) - new Date(b.start)).slice(0, 3);
+  $("h-next").hidden = !items.length;
+  $("h-next-body").innerHTML = items.map((e) => {
+    const s = new Date(e.start), gap = Math.round((day(s) - day(now)) / 86400000);
+    const d = gap <= 0 ? "Today" : gap === 1 ? "Tomorrow" : gap < 7 ? s.toLocaleDateString([], { weekday: "short" }) : s.toLocaleDateString([], { month: "short", day: "numeric" });
+    const t = e.allDay ? "" : " " + s.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).replace(":00", "");
+    return `<div class="n-row"><span>${d}${t}</span><b>${esc(e.title)}</b></div>`;
+  }).join("");
+}
+
+// ===== Voice mode chips (Voicebox > Talk) =====
+const MODES = [["Normal", "Normal mode."], ["Sass", "Sass mode on."], ["Vulgar", "Vulgar mode on."], ["Hype", "Hype mode on."], ["Butler", "Butler mode on."], ["Drill sergeant", "Drill sergeant mode on."], ["Trickster", "Trickster mode on."], ["Ashton", "Ashton mode on."]];
+$("mode-chips").innerHTML = MODES.map(([n], i) => `<button data-mode="${i}">${n}</button>`).join("");
+$("mode-chips").onclick = async (e) => {
+  const b = e.target.closest("[data-mode]"); if (!b) return;
+  flash(b);
+  let r = {}; try { r = await api("/api/voicebox/ask", { method: "POST", body: JSON.stringify({ text: MODES[b.dataset.mode][1] }) }); } catch (err) {}
+  if (r.ok) document.querySelectorAll("#mode-chips button").forEach((x) => x.classList.toggle("on", x === b));
+  toast(r.ok ? MODES[b.dataset.mode][0] + " mode" : (r.error || "Didn't work"));
+};
+
+// ===== Shopping list (Kitchen > List): shared by both phones, shows on the tablet =====
+let listKey = "";
+function drawList(r) {
+  const items = (r && r.items) || [], key = JSON.stringify(items);
+  if (key === listKey) return; listKey = key;
+  const sorted = items.filter((x) => !x.done).concat(items.filter((x) => x.done));
+  $("list-items").innerHTML = sorted.map((x) => `<div class="li ${x.done ? "done" : ""}"><button data-li="${x.id}" data-done="${x.done ? 1 : 0}"><i></i><span>${esc(x.text)}</span></button><button class="p-x" data-lx="${x.id}" aria-label="Remove ${esc(x.text)}">✕</button></div>`).join("");
+  $("list-empty").hidden = items.length > 0;
+  $("list-clear").hidden = !items.some((x) => x.done);
+}
+async function loadList() { try { drawList(await api("/api/list")); } catch (e) {} }
+async function listAdd() {
+  const text = $("list-in").value.trim(); if (!text) return;
+  $("list-in").value = "";
+  try { drawList(await api("/api/list", { method: "POST", body: JSON.stringify({ text }) })); } catch (e) {}
+}
+$("list-add").onclick = listAdd;
+$("list-in").addEventListener("keydown", (e) => { if (e.key === "Enter") listAdd(); });
+$("list-items").onclick = async (e) => {
+  const li = e.target.closest("[data-li]"), x = e.target.closest("[data-lx]");
+  try {
+    if (li) { li.parentNode.classList.toggle("done"); drawList(await api(`/api/list/${li.dataset.li}`, { method: "PATCH", body: JSON.stringify({ done: li.dataset.done !== "1" }) })); }
+    else if (x) drawList(await api(`/api/list/${x.dataset.lx}`, { method: "DELETE" }));
+  } catch (err) {}
+};
+$("list-clear").onclick = async () => { try { drawList(await api("/api/list/clear", { method: "POST" })); } catch (e) {} };
 
 // start: try the API; a 401 shows the PIN screen
 api("/api/timers").then(showApp).catch(() => {});

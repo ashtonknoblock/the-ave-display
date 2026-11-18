@@ -876,3 +876,13 @@ showSlide(0);
 applyDisplayMode();
 
 if (CONFIG.liveReload) setInterval(checkForChanges, 2000);
+
+// ===== Shopping list (added from the phone remote); the slide only appears when there's something to buy =====
+async function loadShopList() {
+  let r; try { r = await api("/api/list"); } catch { return; }
+  const todo = (r.items || []).filter((x) => !x.done), el = document.getElementById("slide-list");
+  if (!el) return;
+  el.innerHTML = todo.length ? `<div class="slide-title">Shopping list <small>${todo.length} to get</small></div><div class="shop">${todo.slice(0, 24).map((x) => `<div>${esc(x.text)}</div>`).join("")}</div>` : "";
+}
+loadShopList();
+setInterval(loadShopList, 20000);

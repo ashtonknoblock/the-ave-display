@@ -13,6 +13,8 @@ const timers = require("./lib/timers");
 const note = require("./lib/note");
 const recipes = require("./lib/recipes");
 const tv = require("./lib/tv");
+const list = require("./lib/list");
+const games = require("./lib/games");
 const { env, saveEnv } = require("./lib/env");
 
 // Phones on the Wi-Fi need a PIN; the tablet itself (localhost) doesn't.
@@ -66,6 +68,7 @@ const MIME = {
   ".js": "text/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".json": "application/json; charset=utf-8",
+  ".webmanifest": "application/manifest+json; charset=utf-8",
   ".png": "image/png",
   ".svg": "image/svg+xml",
   ".ico": "image/x-icon",
@@ -195,6 +198,23 @@ const server = http.createServer((req, res) => {
     if (partyNow && Date.now() - partyNow.at > 8 * 60000) partyNow = null;
     return sendJson(res, 200, { now: partyNow });
   }
+
+  // Shared shopping list (phone remote, voicebox and tablet all use this).
+  if (url.pathname.startsWith("/api/list")) {
+    (async () => {
+      const m = url.pathname.match(/^\/api\/list\/(\d+)$/);
+      if (url.pathname === "/api/list" && req.method === "GET") return sendJson(res, 200, list.all());
+      if (url.pathname === "/api/list" && req.method === "POST") return sendJson(res, 200, list.add((await readBody(req)).text));
+      if (url.pathname === "/api/list/clear" && req.method === "POST") return sendJson(res, 200, list.clearDone());
+      if (m && req.method === "PATCH") return sendJson(res, 200, list.set(m[1], (await readBody(req)).done));
+      if (m && req.method === "DELETE") return sendJson(res, 200, list.remove(m[1]));
+      sendJson(res, 404, { error: "Not found" });
+    })().catch((err) => sendJson(res, 500, { error: err.message }));
+    return;
+  }
+
+  // Today's Pacers / Colts game, for the phone remote's home screen.
+  if (url.pathname === "/api/games") return void games.today().then((g) => sendJson(res, 200, g)).catch(() => sendJson(res, 200, { games: [] }));
 
   if (url.pathname === "/api/note") {
     (async () => {
