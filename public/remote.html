@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="The Ave" />
-  <meta name="theme-color" id="theme-color" content="#f2f2f7" />
+  <meta name="theme-color" id="theme-color" content="#f4efe6" />
   <script>try { var t = localStorage.getItem("ave-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}</script>
   <title>The Ave</title>
   <style>
@@ -245,6 +245,92 @@
     .tv-hint { color: var(--muted); font-size: 14px; } .tv-msg { color: var(--accent); font-size: 12.5px; min-height: 1em; margin-top: 6px; }
 
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+
+    /* ===== Skin: bold and playful. Paper background, thick ink outlines, hard shadows, colour blocks. =====
+       Everything is driven by the tokens below; the dark version swaps paper and ink. */
+    :root:root {
+      color-scheme: light;
+      --paper: #f4efe6; --dot: rgba(0,0,0,.07); --ink: #111111; --bg: var(--paper); --card: #ffffff; --text: #111111; --muted: #57534c; --faint: #9a958b;
+      --accent: #ff5a36; --accent-soft: #ffd9cf; --on-accent: #111111; --fill: #ece6da; --fill2: #d5cebf; --sep: var(--ink); --bar: #ffffff;
+      --pop1: #ffd23f; --pop2: #7bdff2; --pop3: #c4b0ff; --pop4: #ff9fb2; --on-pop: #111111; --red: #ff3b30; --green: #35c476;
+      --r: 12px; --edge: 0 0 0 2px var(--ink); --shadow: var(--edge), 4px 4px 0 var(--ink);
+      --round: -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto, sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        color-scheme: dark;
+        --paper: #17161c; --dot: rgba(255,255,255,.06); --ink: #f4efe6; --card: #25232d; --text: #f4efe6; --muted: #b5b0a5; --faint: #7f7a70;
+        --accent: #ff6a48; --accent-soft: rgba(255,106,72,.3); --fill: #32303c; --fill2: #4b4858; --bar: #25232d;
+      }
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --paper: #17161c; --dot: rgba(255,255,255,.06); --ink: #f4efe6; --card: #25232d; --text: #f4efe6; --muted: #b5b0a5; --faint: #7f7a70;
+      --accent: #ff6a48; --accent-soft: rgba(255,106,72,.3); --fill: #32303c; --fill2: #4b4858; --bar: #25232d;
+    }
+    html { background: var(--paper) radial-gradient(var(--dot) 1.2px, transparent 1.2px) 0 0 / 16px 16px; }
+    body::before { display: none; }
+    h1 { font-size: 40px; font-weight: 900; letter-spacing: -.045em; text-transform: uppercase; margin: 6px 0 14px; }
+    .view h1:not(:first-child) { font-size: 26px; }
+    h1 + .sub { margin-top: -8px; }
+    h2 { font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; margin-top: 26px; }
+    h2 small { text-transform: none; letter-spacing: 0; font-weight: 500; }
+    h2 b { background: var(--pop1); color: var(--on-pop); padding: 1px 6px; box-shadow: var(--edge); }
+    button, .room, .timer, .tv-card, .rec-group, #party-list, #vb-settings, textarea, .note-row input, .p-row input, .tip, .empty, #party-now.playing, .note-card, select.big-sel, .login, .login input, .scene, .presets button { border-radius: var(--r); }
+    button { font-weight: 700; }
+    button:active { transform: translate(3px, 3px); box-shadow: var(--edge) !important; }
+    .flash { animation: pop .35s; }
+    @keyframes pop { 50% { transform: translate(3px, 3px); } }
+    button.live { background: var(--ink) !important; color: var(--paper) !important; box-shadow: var(--edge), 4px 4px 0 var(--accent) !important; }
+    .whole, .scene-grid, #rooms, .presets { gap: 12px; }
+    .whole .scene { color: var(--on-pop); }
+    .whole .scene:nth-child(4n+1) { background: var(--pop1); } .whole .scene:nth-child(4n+2) { background: var(--pop2); }
+    .whole .scene:nth-child(4n+3) { background: var(--pop3); } .whole .scene:nth-child(4n) { background: var(--pop4); }
+    .holiday button { background: var(--card); }
+    .room { min-height: 124px; transition: background .2s, box-shadow .2s; }
+    .room-name { font-weight: 900; font-size: 16px; }
+    .room.on { background: var(--pop1); color: var(--on-pop); box-shadow: var(--shadow); }
+    .room.on .room-state { color: var(--on-pop); }
+    .room.sel { box-shadow: var(--edge), 6px 6px 0 var(--accent); }
+    .toggle { box-shadow: 0 0 0 2px var(--ink); background: var(--card); }
+    .toggle::after { background: var(--ink); box-shadow: none; }
+    .room.on .toggle { background: #111; box-shadow: 0 0 0 2px #111; } .room.on .toggle::after { background: var(--pop1); }
+    input[type=range] { border-radius: 8px; box-shadow: 0 0 0 2px var(--ink); background: linear-gradient(to right, var(--ink) var(--v, 50%), var(--card) var(--v, 50%)); }
+    .room.on input[type=range] { box-shadow: 0 0 0 2px #111; background: linear-gradient(to right, #111 var(--v, 50%), #fff var(--v, 50%)); }
+    input[type=range]::-webkit-slider-thumb { width: 10px; height: 22px; border-radius: 3px; background: var(--accent); box-shadow: 0 0 0 2px #111; }
+    input[type=range]::-moz-range-thumb { width: 10px; height: 22px; border-radius: 3px; background: var(--accent); box-shadow: 0 0 0 2px #111; }
+    #presets button { color: var(--on-pop); } #presets small { color: #111; opacity: .7; }
+    #presets button:nth-child(4n+1) { background: var(--pop1); } #presets button:nth-child(4n+2) { background: var(--pop2); }
+    #presets button:nth-child(4n+3) { background: var(--pop3); } #presets button:nth-child(4n) { background: var(--pop4); }
+    .timer.done { background: var(--accent); color: #111; } .timer.done .t-label { color: #111; }
+    .timer button, .rec-item button, .tvb, .note-card button, .rec-pills button, .p-x { box-shadow: var(--edge); }
+    #party-list .p-x { box-shadow: none; }
+    .tabs { left: 12px; right: 12px; border-radius: 16px; background: var(--bar); box-shadow: var(--shadow); -webkit-backdrop-filter: none; backdrop-filter: none; }
+    .tabs::before { background: var(--pop1); border-radius: 10px; box-shadow: var(--edge); }
+    .tabs button { color: var(--text); font-weight: 800; border-radius: 10px; }
+    .tabs button.on { color: var(--on-pop); }
+    .tabs button:active { transform: scale(.94); box-shadow: none !important; }
+    body.scrolled #topbar { background: var(--paper); -webkit-backdrop-filter: none; backdrop-filter: none; border-bottom: 2px solid var(--ink); }
+    #topbar b { font-weight: 900; text-transform: uppercase; letter-spacing: .02em; }
+    #theme { box-shadow: var(--edge); background: var(--card); }
+    #toast { background: var(--pop1); color: #111; box-shadow: var(--shadow); -webkit-backdrop-filter: none; backdrop-filter: none; border-radius: 10px; }
+    #party-btns [data-a="start"] { background: var(--accent); animation: none; color: #111; text-shadow: none; box-shadow: var(--shadow); font-weight: 900; text-transform: uppercase; font-size: 18px; border-radius: var(--r); }
+    #party-now.playing { background: var(--pop3); color: #111; }
+    #party-now.playing::before { filter: brightness(0); }
+    button.big, .p-row button, .login button, .tvb.wide, .rec-item button.show, .p-x[data-add] { box-shadow: var(--shadow); font-weight: 900; color: #111; }
+    #party-list .p-song + .p-song, #vb-settings > * + *, .rec-group > .try, .rec-group > .tip, .rec-item, .guide-h { border-top-width: 2px; }
+    .guide-h { background: var(--fill); color: var(--text); }
+    .try::after { background: var(--pop1); color: #111; box-shadow: var(--edge); }
+    .try.sent::after, .try.fail::after { box-shadow: none; }
+    .try.set b { box-shadow: 0 0 0 2px var(--ink); } .try.set b::after { background: var(--ink); box-shadow: none; }
+    .try.set.off b { background: var(--card); }
+    textarea, .note-row input, .p-row input, select.big-sel { box-shadow: var(--edge); }
+    textarea:focus, .note-row input:focus, .p-row input:focus, .login input:focus { box-shadow: var(--edge), 4px 4px 0 var(--accent); }
+    .tv-dot { box-shadow: var(--edge); } .tv-dot.on { color: #111; }
+    .tv-dpad .tvb { border-radius: 16px; }
+    .tv-dpad .ok { color: #111; box-shadow: var(--shadow); }
+    .rec-pills span, .rec-group summary span { background: var(--pop1); color: #111; padding: 0 6px; border-radius: 6px; box-shadow: var(--edge); font-size: 12px; margin-left: 6px; }
+    .rec-pills { padding-bottom: 8px; }
   </style>
 </head>
 <body>
@@ -395,7 +481,7 @@ function applyTheme() {
   if (theme === "auto") document.documentElement.removeAttribute("data-theme"); else document.documentElement.dataset.theme = theme;
   $("theme").innerHTML = THEME_ICON[theme] || THEME_ICON.auto;
   const dark = theme === "dark" || (theme !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
-  $("theme-color").content = dark ? "#000000" : "#f2f2f7";
+  $("theme-color").content = dark ? "#17161c" : "#f4efe6";
 }
 $("theme").onclick = () => {
   theme = { auto: "light", light: "dark", dark: "auto" }[theme] || "auto";
